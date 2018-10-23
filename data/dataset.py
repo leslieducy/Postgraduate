@@ -108,6 +108,7 @@ class Seg3D(data.Dataset):
             extra = [index, frame_batch_size]
             return torch.Tensor(data), extra
         else:
+            print(torch.Tensor(label))
             return torch.Tensor(data), torch.Tensor(label)
 
     def __len__(self):

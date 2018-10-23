@@ -19,7 +19,7 @@ class DefaultConfig(object):
     test_model_path = 'checkpoints/easynet_1023_.pt' # 加载测试时的模型的路径
 
     batch_size = 64 # batch size
-    use_gpu = True # user GPU or not
+    use_gpu = False # user GPU or not
     num_workers = 6 # how many workers for loading data
     print_freq = 10 # print info every N batch
 

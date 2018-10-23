@@ -83,7 +83,6 @@ def train(**kwargs):
     loss_meter = meter.AverageValueMeter()
     confusion_matrix = meter.ConfusionMeter(2)
     previous_loss = 1e100
-
     print("训练开始")
     # train
     for epoch in range(opt.max_epoch):
@@ -91,7 +90,6 @@ def train(**kwargs):
         confusion_matrix.reset()
         for ii,(data,label) in enumerate(train_dataloader):
             # train model 
-            print(ii)
             input = Variable(data)
             target = Variable(label).type(t.LongTensor) 
             if opt.use_gpu:
@@ -106,8 +104,7 @@ def train(**kwargs):
             # output = Variable(t.randn(10, 120).float())
             # target = Variable(t.FloatTensor(10).uniform_(0, 120).long())
             # loss = loss_func(score, target)
-            criterion = t.nn.CrossEntropyLoss()
-            print(len(score[0]))
+            print(len(score))
             # for si in range(len(score)):
             loss = criterion(score, target)
             loss.backward()
