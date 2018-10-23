@@ -29,21 +29,21 @@ def test(**kwargs):
     test_dataloader = DataLoader(test_data,batch_size=opt.batch_size,shuffle=False,num_workers=opt.num_workers)
     results = []
     frame = [pt for pt in os.listdir(os.path.join(opt.test_data_root, opt.train_data_pts))][opt.test_data_root_start:]
-    # print(len(frame))
-    for ii,(data, index) in enumerate(test_dataloader):
+    print(len(frame))
+    for ii,(data, extra) in enumerate(test_dataloader):
         input = t.Tensor(data)
         if opt.use_gpu: input = input.cuda()
         score = model(input)
         for si in range(len(score)):
+            results = []
             probability = t.nn.functional.softmax(score[si], dim=1).data.tolist()
-        # probability = t.nn.functional.softmax(score, dim=1)[:,0].data.tolist()
-        # label = score.max(dim = 1)[1].data.tolist()
-        # for path_,probability_ in zip(path,probability):
             for probability_ in probability:
                 label = probability_.index(max(probability_))
                 results.append([label])
                 # results.append(probability_)
-            # print(len(results))
+            index = extra[0]
+            frame_batch_size = extra[1]
+            results = results[:frame_batch_size[si].data]
             write_csv(results,os.path.join(opt.test_data_root, opt.train_data_category, frame[int(index[si].data/20)]))
             print("第",opt.test_data_root_start + int(index[si].data/20) + 1,"个文件，第",int(index[si].data%20) + 1,"批")
 
@@ -52,7 +52,7 @@ def test(**kwargs):
 
 def write_csv(results,file_name):
     import csv
-    with open(file_name,'w', newline='') as f:
+    with open(file_name,'a', newline='') as f:
         writer = csv.writer(f)
         writer.writerows(results)
     
@@ -108,8 +108,8 @@ def train(**kwargs):
             # loss = loss_func(score, target)
             criterion = t.nn.CrossEntropyLoss()
             print(len(score[0]))
-            for si in range(len(score)):
-                loss = criterion(score[si], target[si])
+            # for si in range(len(score)):
+            loss = criterion(score, target)
             loss.backward()
             optimizer.step()
             

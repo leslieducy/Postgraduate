@@ -99,12 +99,14 @@ class Seg3D(data.Dataset):
                 if pos > minCol and pos <= maxCol:
                     label.append(int(category_line[0]))
         # 57920
-        if i < 2896:
-            for _ in range(i, 2896):
+        if i < 3000:
+            for _ in range(i, 3000):
                 data.append([0, 0, 0, 0])
                 label.append(0)
         if self.test:
-            return torch.Tensor(data), index
+            # 额外返回的是调用的组号和帧的真实大小，方便后期写入
+            extra = [index, frame_batch_size]
+            return torch.Tensor(data), extra
         else:
             return torch.Tensor(data), torch.Tensor(label)
 
