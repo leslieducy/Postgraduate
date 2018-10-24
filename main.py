@@ -104,8 +104,9 @@ def train(**kwargs):
             # output = Variable(t.randn(10, 120).float())
             # target = Variable(t.FloatTensor(10).uniform_(0, 120).long())
             # loss = loss_func(score, target)
-            print(len(score))
-            # for si in range(len(score)):
+            target.view(-1,8)
+            if (ii == 0) :print(len(score[0]),target)
+            # for si in range(len(score[0])):
             loss = criterion(score, target)
             loss.backward()
             optimizer.step()
