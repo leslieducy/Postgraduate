@@ -68,13 +68,13 @@ def train(**kwargs):
         model.load(opt.load_model_path)
     if opt.use_gpu: model.cuda()
     # step2: data
-    train_data = Seg3D(opt.train_data_root,train=True)
+    file_path = "000d4e61-1203-4819-98ab-afbb619010b0_channelVELO_TOP.csv"
+    train_data = Seg3D(file_path,train=True)
     # val_data = Seg3D(opt.train_data_root,train=False)
     train_dataloader = DataLoader(train_data,opt.batch_size,
                         shuffle=True,num_workers=opt.num_workers)
     # val_dataloader = DataLoader(val_data,opt.batch_size,
     #                     shuffle=False,num_workers=opt.num_workers)
-    
     print("数据加载成功")
     # step3: criterion and optimizer
     criterion = t.nn.CrossEntropyLoss()
@@ -89,6 +89,7 @@ def train(**kwargs):
         loss_meter.reset()
         confusion_matrix.reset()
         for ii,(data,label) in enumerate(train_dataloader):
+            print(ii,data)
             # train model 
             input = Variable(data)
             target = Variable(label).type(t.LongTensor) 
@@ -100,12 +101,13 @@ def train(**kwargs):
             optimizer.zero_grad()
             print("模型数据载入完毕")
             score = model(input)
+            # print(score, target)
             # loss_func = t.nn.CrossEntropyLoss()
             # output = Variable(t.randn(10, 120).float())
             # target = Variable(t.FloatTensor(10).uniform_(0, 120).long())
             # loss = loss_func(score, target)
-            target.view(-1,8)
-            if (ii == 0) :print(len(score[0]),target)
+            # target.view(-1,8)
+            # if (ii == 0) :print(len(score[0]),target)
             # for si in range(len(score[0])):
             loss = criterion(score, target)
             loss.backward()
