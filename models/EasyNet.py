@@ -39,8 +39,6 @@ class EasyNet(BasicModule):
         x = self.features(x)
         # x = x.view(1, 30000)
         x = self.classifier(x)
-        x.view(-1, 8)
-        print(x)
         # x = self.out(x) 
         return x
 

@@ -11,16 +11,16 @@ class DefaultConfig(object):
     test_data_root = "./data/test/" # 测试集存放路径
     test_data_root_start = 0 # 测试集存放路径
 
-    train_data_pts = 'pts'
-    train_data_intensity = 'intensity'
-    train_data_category = 'category'
+    data_pts = 'pts'
+    data_intensity = 'intensity'
+    data_category = 'category'
     # load_model_path = 'checkpoints/model.pth' # 加载预训练的模型的路径，为None代表不加载
     load_model_path = None # 加载预训练的模型的路径，为None代表不加载
-    test_model_path = 'checkpoints/easynet_1023_.pt' # 加载测试时的模型的路径
+    test_model_path = 'checkpoints/easynet_1026_.pt' # 加载测试时的模型的路径
 
-    batch_size = 64 # batch size
+    batch_size = 512 # batch size
     use_gpu = False # user GPU or not
-    num_workers = 6 # how many workers for loading data
+    num_workers = 4 # how many workers for loading data
     print_freq = 10 # print info every N batch
 
     debug_file = '/tmp/debug' # if os.path.exists(debug_file): enter ipdb

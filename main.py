@@ -25,28 +25,23 @@ def test(**kwargs):
         try:model.cuda();print("使用成功")
         except:print("使用失败")
     # data
-    test_data = Seg3D(opt.test_data_root,test=True)
-    test_dataloader = DataLoader(test_data,batch_size=opt.batch_size,shuffle=False,num_workers=opt.num_workers)
-    results = []
-    frame = [pt for pt in os.listdir(os.path.join(opt.test_data_root, opt.train_data_pts))][opt.test_data_root_start:]
-    print(len(frame))
-    for ii,(data, extra) in enumerate(test_dataloader):
-        input = t.Tensor(data)
-        if opt.use_gpu: input = input.cuda()
-        score = model(input)
-        for si in range(len(score)):
+    frame_file = [pt for pt in os.listdir(os.path.join(opt.test_data_root, opt.data_pts))]
+    for file_path in frame_file:
+        # file_path = "000d4e61-1203-4819-98ab-afbb619010b0_channelVELO_TOP.csv"
+        test_data = Seg3D(file_path,test=True)
+        test_dataloader = DataLoader(test_data,batch_size=opt.batch_size,shuffle=False,num_workers=opt.num_workers)
+        print("正在处理文件：",file_path,"，处理中...")
+        for ii,(data,_) in enumerate(test_dataloader):
+            input = Variable(data)
+            if opt.use_gpu:
+                input = input.cuda()
+            score = model(input)
             results = []
-            probability = t.nn.functional.softmax(score[si], dim=1).data.tolist()
+            probability = t.nn.functional.softmax(score, dim=1).data.tolist()
             for probability_ in probability:
                 label = probability_.index(max(probability_))
                 results.append([label])
-                # results.append(probability_)
-            index = extra[0]
-            frame_batch_size = extra[1]
-            results = results[:frame_batch_size[si].data]
-            write_csv(results,os.path.join(opt.test_data_root, opt.train_data_category, frame[int(index[si].data/20)]))
-            print("第",opt.test_data_root_start + int(index[si].data/20) + 1,"个文件，第",int(index[si].data%20) + 1,"批")
-
+            write_csv(results,os.path.join(opt.test_data_root, opt.data_category, file_path))
 
     # return results
 
@@ -68,107 +63,55 @@ def train(**kwargs):
         model.load(opt.load_model_path)
     if opt.use_gpu: model.cuda()
     # step2: data
-    file_path = "000d4e61-1203-4819-98ab-afbb619010b0_channelVELO_TOP.csv"
-    train_data = Seg3D(file_path,train=True)
-    # val_data = Seg3D(opt.train_data_root,train=False)
-    train_dataloader = DataLoader(train_data,opt.batch_size,
-                        shuffle=True,num_workers=opt.num_workers)
-    # val_dataloader = DataLoader(val_data,opt.batch_size,
-    #                     shuffle=False,num_workers=opt.num_workers)
-    print("数据加载成功")
-    # step3: criterion and optimizer
-    criterion = t.nn.CrossEntropyLoss()
-    lr = opt.lr
-    # step4: meters
-    loss_meter = meter.AverageValueMeter()
-    confusion_matrix = meter.ConfusionMeter(2)
-    previous_loss = 1e100
-    print("训练开始")
-    # train
-    for epoch in range(opt.max_epoch):
-        loss_meter.reset()
-        confusion_matrix.reset()
-        for ii,(data,label) in enumerate(train_dataloader):
-            print(ii,data)
-            # train model 
-            input = Variable(data)
-            target = Variable(label).type(t.LongTensor) 
-            if opt.use_gpu:
-                input = input.cuda()
-                target = target.cuda()
+    frame_file = [pt for pt in os.listdir(os.path.join(opt.train_data_root, opt.data_pts))]
+    for file_path in frame_file:
+        print("正在训练文件：",file_path,",请稍等...")
+        # file_path = "000d4e61-1203-4819-98ab-afbb619010b0_channelVELO_TOP.csv"
+        train_data = Seg3D(file_path,train=True)
+        train_dataloader = DataLoader(train_data,opt.batch_size,
+                            shuffle=True,num_workers=opt.num_workers)
+        print("数据加载成功")
+        # step3: criterion and optimizer
+        criterion = t.nn.CrossEntropyLoss()
+        lr = opt.lr
+        # step4: meters
+        loss_meter = meter.AverageValueMeter()
+        confusion_matrix = meter.ConfusionMeter(2)
+        previous_loss = 1e100
+        print("训练开始")
+        # train
+        for epoch in range(opt.max_epoch):
+            loss_meter.reset()
+            confusion_matrix.reset()
+            for ii,(data,label) in enumerate(train_dataloader):
+                # train model 
+                input = Variable(data)
+                target = Variable(label).type(t.LongTensor) 
+                if opt.use_gpu:
+                    input = input.cuda()
+                    target = target.cuda()
 
-            optimizer = t.optim.Adam(model.parameters(),lr = lr,weight_decay = opt.weight_decay)
-            optimizer.zero_grad()
-            print("模型数据载入完毕")
-            score = model(input)
-            # print(score, target)
-            # loss_func = t.nn.CrossEntropyLoss()
-            # output = Variable(t.randn(10, 120).float())
-            # target = Variable(t.FloatTensor(10).uniform_(0, 120).long())
-            # loss = loss_func(score, target)
-            # target.view(-1,8)
-            # if (ii == 0) :print(len(score[0]),target)
-            # for si in range(len(score[0])):
-            loss = criterion(score, target)
-            loss.backward()
-            optimizer.step()
-            
-            # meters update and visualize
-            loss_meter.add(loss.item())
-            print("损失：",loss_meter.value()[0])
-            # confusion_matrix.add(score.data, target.long().data)
-
-            # if ii%opt.print_freq==opt.print_freq-1:
-            #     # vis.plot('loss', loss_meter.value()[0])
+                optimizer = t.optim.Adam(model.parameters(),lr = lr,weight_decay = opt.weight_decay)
+                optimizer.zero_grad()
+                print("模型数据载入完毕")
+                score = model(input)
+                loss = criterion(score, target)
+                loss.backward()
+                optimizer.step()
                 
-            #     # 如果需要的话，进入debug模式
-            #     if os.path.exists(opt.debug_file):
-            #         import ipdb
-            #         ipdb.set_trace()
-            
-            # update learning rate
-            if loss_meter.value()[0] > previous_loss:          
-                lr = lr * opt.lr_decay
-                # 第二种降低学习率的方法:不会有moment等信息的丢失
-                for param_group in optimizer.param_groups:
-                    param_group['lr'] = lr
-            
-        model.save()
-
-        # validate and visualize
-
-        # val_cm,val_accuracy = val(model,val_dataloader)
-
-        # vis.plot('val_accuracy',val_accuracy)
-        # vis.log("epoch:{epoch},lr:{lr},loss:{loss},train_cm:{train_cm},val_cm:{val_cm}".format(
-                    # epoch = epoch,loss = loss_meter.value()[0],val_cm = str(val_cm.value()),train_cm=str(confusion_matrix.value()),lr=lr))
-        
-
-        
-
-        previous_loss = loss_meter.value()[0]
-
-def val(model,dataloader):
-    from config import opt
-    ''' 
-    计算模型在验证集上的准确率等信息
-    '''
-    model.eval()
-    confusion_matrix = meter.ConfusionMeter(2)
-    for ii, data in enumerate(dataloader):
-        input, label = data
-        val_input = Variable(input)
-        val_label = Variable(label.type(t.LongTensor))
-        if opt.use_gpu:
-            val_input = val_input.cuda()
-            val_label = val_label.cuda()
-        score = model(val_input)
-        confusion_matrix.add(score.data.squeeze(), label.type(t.LongTensor))
-
-    model.train()
-    cm_value = confusion_matrix.value()
-    accuracy = 100. * (cm_value[0][0] + cm_value[1][1]) / (cm_value.sum())
-    return confusion_matrix, accuracy
+                # meters update and visualize
+                loss_meter.add(loss.item())
+                print("损失：",loss_meter.value()[0])
+                
+                # update learning rate
+                if loss_meter.value()[0] > previous_loss:          
+                    lr = lr * opt.lr_decay
+                    # 第二种降低学习率的方法:不会有moment等信息的丢失
+                    for param_group in optimizer.param_groups:
+                        param_group['lr'] = lr
+                
+            model.save()
+            previous_loss = loss_meter.value()[0]
 
 def help():
     from config import opt
