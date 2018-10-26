@@ -84,12 +84,15 @@ def train(**kwargs):
             loss_meter.reset()
             confusion_matrix.reset()
             for ii,(data,label) in enumerate(train_dataloader):
-                # train model 
-                input = Variable(data)
-                target = Variable(label).type(t.LongTensor) 
                 if opt.use_gpu:
                     input = input.cuda()
                     target = target.cuda()
+                # train model 
+                print(len(data))
+                # 数据格式暂存问题（待修改）
+                data = data.view(-1, 300, 4)
+                input = Variable(data)
+                target = Variable(label).type(t.LongTensor) 
 
                 optimizer = t.optim.Adam(model.parameters(),lr = lr,weight_decay = opt.weight_decay)
                 optimizer.zero_grad()
