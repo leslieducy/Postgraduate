@@ -16,7 +16,7 @@ class DefaultConfig(object):
     data_category = 'category'
     # load_model_path = 'checkpoints/model.pth' # 加载预训练的模型的路径，为None代表不加载
     load_model_path = None # 加载预训练的模型的路径，为None代表不加载
-    test_model_path = 'checkpoints/easynet_1026_.pt' # 加载测试时的模型的路径
+    test_model_path = 'checkpoints/easynet_1027_.pt' # 加载测试时的模型的路径
 
     batch_size = 512 # batch size
     use_gpu = False # user GPU or not

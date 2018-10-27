@@ -35,6 +35,7 @@ def test(**kwargs):
             input = Variable(data)
             if opt.use_gpu:
                 input = input.cuda()
+            input = input.view(-1, 1, 4)
             score = model(input)
             results = []
             probability = t.nn.functional.softmax(score, dim=1).data.tolist()
@@ -42,6 +43,8 @@ def test(**kwargs):
                 label = probability_.index(max(probability_))
                 results.append([label])
             write_csv(results,os.path.join(opt.test_data_root, opt.data_category, file_path))
+        
+        print("文件：",file_path,"，处理完毕！")
 
     # return results
 
@@ -84,14 +87,13 @@ def train(**kwargs):
             loss_meter.reset()
             confusion_matrix.reset()
             for ii,(data,label) in enumerate(train_dataloader):
+                input = Variable(data)
                 if opt.use_gpu:
                     input = input.cuda()
                     target = target.cuda()
                 # train model 
-                print(len(data))
                 # 数据格式暂存问题（待修改）
-                data = data.view(-1, 300, 4)
-                input = Variable(data)
+                input = input.view(-1, 1, 4)
                 target = Variable(label).type(t.LongTensor) 
 
                 optimizer = t.optim.Adam(model.parameters(),lr = lr,weight_decay = opt.weight_decay)
