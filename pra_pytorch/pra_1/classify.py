@@ -19,7 +19,7 @@ y = torch.cat((y0, y1), 0).type(torch.LongTensor)    # LongTensor = 64-bit integ
 # plt.show()
 
 
-
+# method-1:每层都有名字 
 class Net(torch.nn.Module):  # 继承 torch 的 Module
     def __init__(self, n_feature, n_hidden, n_output):
         super(Net, self).__init__()     # 继承 __init__ 功能
@@ -34,7 +34,6 @@ class Net(torch.nn.Module):  # 继承 torch 的 Module
         return x
 
 net = Net(n_feature=2, n_hidden=10, n_output=2)
-
 # # print(net)  # net 的结构
 # """
 # Net (
@@ -43,10 +42,18 @@ net = Net(n_feature=2, n_hidden=10, n_output=2)
 # )
 # """
 
+# method-2:快速构建方法
+net2 = torch.nn.Sequential(
+    torch.nn.Linear(2, 10),
+    torch.nn.ReLU(),
+    torch.nn.Linear(2, 10),
+)
+
+
 # optimizer 是训练的工具
 optimizer = torch.optim.SGD(net.parameters(), lr=0.02)  # 传入 net 的所有参数, 学习率
 loss_func = torch.nn.CrossEntropyLoss()      # 预测值和真实值的误差计算公式 (均方差)
-
+# 开始训练
 for t in range(100):
 
     out = net(x)     # input x and predict based on x
@@ -56,7 +63,7 @@ for t in range(100):
     optimizer.zero_grad()   # clear gradients for next train
     loss.backward()         # backpropagation, compute gradients
     optimizer.step()        # apply gradients
-# 接着上面来
+    # 接着上面来
     if t % 2 == 0:
         plt.cla()
         # 过了一道 softmax 的激励函数后的最大概率才是预测值,torch.max函数返回的元组的[1]为索引值，[0]为值
@@ -67,5 +74,6 @@ for t in range(100):
         accuracy = sum(pred_y == target_y)/200.  # 预测中有多少和真实值一样
         plt.text(1.5, -4, 'Accuracy=%.2f' % accuracy, fontdict={'size': 20, 'color':  'red'})
         plt.pause(0.1)
+
 plt.ioff()  # 停止画图
 plt.show()
