@@ -45,19 +45,27 @@ def unicodeToAscii(s):
 def normalizeString(s):
     s = unicodeToAscii(s.lower().strip())
     s = re.sub(r"([.!?])", r" \1", s)
-    s = re.sub(r"[^a-zA-Z.!?]+", r" ", s)
+    # s = re.sub(r"[^a-zA-Z.!?]+", r" ", s)
     return s
 
 def readLangs(lang1, lang2, reverse=False):
     print("Reading lines...")
-
     # Read the file and split into lines
     lines = open('data/%s-%s.txt' % (lang1, lang2), encoding='utf-8').\
         read().strip().split('\n')
 
     # Split every line into pairs and normalize
+    
     pairs = [[normalizeString(s) for s in l.split('\t')] for l in lines]
-
+    # print(test_pairs[200])
+    # pairs_lines = [l for l in lines]
+    # pairs = []
+    # for pl in pairs_lines:
+    #     two_pair = pl.split('\t')
+    #     eng = normalizeString(two_pair[0])
+    #     cmn = two_pair[1]
+    #     pairs.append([eng,cmn])
+    # print(pairs[200])
     # Reverse pairs, make Lang instances
     if reverse:
         pairs = [list(reversed(p)) for p in pairs]
@@ -91,7 +99,7 @@ def filterPairs(pairs):
 def prepareData(lang1, lang2, reverse=False):
     input_lang, output_lang, pairs = readLangs(lang1, lang2, reverse)
     print("Read %s sentence pairs" % len(pairs))
-    pairs = filterPairs(pairs)
+    # pairs = filterPairs(pairs)
     print("Trimmed to %s sentence pairs" % len(pairs))
     print("Counting words...")
     for pair in pairs:
@@ -103,7 +111,7 @@ def prepareData(lang1, lang2, reverse=False):
     return input_lang, output_lang, pairs
 
 
-input_lang, output_lang, pairs = prepareData('eng', 'fra', True)
+input_lang, output_lang, pairs = prepareData('eng', 'cmn', True)
 print(random.choice(pairs))
 
 class EncoderRNN(nn.Module):
@@ -277,6 +285,7 @@ def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, lear
                       for i in range(n_iters)]
     criterion = nn.NLLLoss()
 
+    # for iter in range(1, 10):
     for iter in range(1, n_iters + 1):
         # print("训练第",iter,"遍")
         training_pair = training_pairs[iter - 1]
@@ -366,3 +375,4 @@ encoder1 = EncoderRNN(input_lang.n_words, hidden_size).to(device)
 attn_decoder1 = AttnDecoderRNN(hidden_size, output_lang.n_words, dropout_p=0.1).to(device)
 
 trainIters(encoder1, attn_decoder1, 75000, print_every=5000)
+evaluateRandomly(encoder1, attn_decoder1)
