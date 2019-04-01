@@ -8,70 +8,6 @@ import matplotlib.pyplot as plt
 import pickle
 # import treePlotter
 
-def pretreatment_dataset(filename,ratio):
-    """
-    Pclass（客场等级）;
-    Survived（生还状况），统一规定用1代表生还，用0代表死亡;
-    Name（名字）;
-    Age（年龄）;
-    Embarked（登船港口）;
-    Sex（性别）;
-    """
-    dataset=[]
-    labels=['客场等级', '生还状况', '名字', '年龄', '登船港口', '性别']
-    with open(filename,"r",encoding='utf-8') as fr:
-        all_lines=fr.readlines()   #list形式,每行为1个str
-        for line in all_lines[1:]:
-            line = re.sub(r'([^0-9]),\s([^0-9])', '/', line, count=0)
-            line = re.sub(r'"', '', line, count=0)
-            line=line.strip().split(',')   #以逗号为分割符拆分列表
-            # 去除第一列序号及序号为50，264，265，310，337行的不规范数据
-            if len(line) == 7:
-                dataset.append(line[1:])
-    train_length = len(dataset)
-    # 额外需要预测的内容处理部分
-    with open("testset.txt","r",encoding='utf-8') as fr:
-        all_lines = fr.readlines()   #list形式,每行为1个str
-        for line in all_lines:
-            line = re.sub(r'"', '', line, count=0)
-            line=line.strip().split(',')   #以逗号为分割符拆分列表
-            line.insert(2,0)
-            line.insert(2,0)
-            dataset.append(line[1:])
-    # print(len(dataset))
-    # 数据数字化
-    df = pd.DataFrame(dataset)
-    df.columns = labels
-    # df = df[(~df['年龄'].isin(['NA']))]
-    df['年龄'].replace('NA',30, inplace = True)
-    level_mapping = {
-           '3rd': 3,
-           '2nd': 2,
-           '1st': 1}
-    df['客场等级'] = df['客场等级'].map(level_mapping)
-    class_mapping = {label:idx for idx,label in enumerate(set(df['登船港口']))}
-    df['登船港口'] = df['登船港口'].map(class_mapping)
-    class_mapping = {label:idx for idx,label in enumerate(set(df['性别']))}
-    df['性别'] = df['性别'].map(class_mapping)
-    # 更改列的顺序
-    df_level = df['生还状况']
-    df.drop('生还状况',axis=1, inplace=True)
-    df.insert(5,'生还状况',df_level)
-    df.drop('名字',axis=1, inplace=True)
-    # 额外需要预测的内容处理部分
-    result_df, no_result_df = df.iloc[:train_length], df.iloc[train_length:]
-    df_test_filename = 'test_data.csv'
-    no_result_df.to_csv(df_test_filename,index=0)
-    # 全部打乱
-    result_df = result_df.sample(frac=1.0)
-    cut_idx = int(round(ratio * result_df.shape[0]))
-    df_train, df_test = result_df.iloc[:cut_idx], result_df.iloc[cut_idx:]
-    df_train_filename,df_test_filename = 'df_train.csv','df_test.csv'
-    df_train.to_csv(df_train_filename,index=0)
-    df_test.to_csv(df_test_filename,index=0)
-    return df_train_filename,df_test_filename
-    
-
 def read_dataset(filename, istrain=True):
     dataset = []
     result = []
@@ -81,8 +17,8 @@ def read_dataset(filename, istrain=True):
         for line in all_lines[1:]:
             line=line.strip().split(',')   #以逗号为分割符拆分列表
             dataset.append(line)
-    return dataset[1:],labels
-        # return dataset[1:],result
+    print(dataset)
+    return dataset,labels
 """
 决策树的生成，data_set为训练集，attribute_label为属性名列表
 决策树用字典结构表示，递归的生成
@@ -285,21 +221,8 @@ def decision_tree_predict(decision_tree, attribute_labels, one_test_data):
                     res_label = second_dic[key]
     return res_label
 
-def train(df_train_filename, modelfilename="C4.5.model"):
-    train_data, labels = read_dataset(df_train_filename)
-    # print(u"训练数据集长度",len(train_data))
-    # print ("Ent(D):",calc_info_D(train_data))
 
-    # print(u"下面开始创建相应的决策树-------")
-    # 拷贝，createTree会改变labels
-    labels_tmp = labels[:]
-    decision_tree= C45_createTree(train_data,labels_tmp)
-    # 保存模型
-    fw = open(modelfilename,'wb')
-    pickle.dump(decision_tree,fw)
-    fw.close()
-
-# 返回查准率和召回率
+# 返回结果
 def test(df_test_filename, modelfilename="C4.5.model"):
     # 加载模型
     fr = open(modelfilename,'rb')
@@ -307,54 +230,20 @@ def test(df_test_filename, modelfilename="C4.5.model"):
 
     test_data, labels = read_dataset(df_test_filename,istrain=False)
     all_datas_length = len(test_data)
-    TP,FN,FP,TN = 0,0,0,0
-    #计算准确率
+    result_list = []
+    # 预测结果
     for ite in range(all_datas_length):
-        classify_lables = decision_tree_predict(decision_tree,labels,test_data[ite])
-        origin_lables = test_data[ite][-1]
-        if origin_lables == '1' and classify_lables == '1':
-            TP += 1
-        elif origin_lables == '1' and classify_lables == '0':
-            FN += 1
-        elif origin_lables == '0' and classify_lables == '1':
-            FP += 1
-        elif origin_lables == '0' and classify_lables == '0':
-            TN += 1
-    # print(TP,FN,FP,TN)
-    # 查准率、查全率
-    precision_p = TP / (TP + FP)
-    recall_p = TP / (TP + FN)
-    return precision_p, recall_p
-
-
+        classify_lables = decision_tree_predict(decision_tree, labels, test_data[ite])
+        result = [test_data[ite][i] for i in range(0, len(test_data[ite]) - 1)]
+        result.append(classify_lables)
+        result_list.append(result)
+    columns = ["pclass","age","embarked","sex","survived"]
+    test=pd.DataFrame(columns=columns, data=result_list)
+    test.to_csv('tree_result.csv', encoding='utf-8')
+        
 if __name__ == '__main__':
-    train_tag = True
-    if train_tag:
-        precision_list = []
-        recall_list = []
-        for i in range(1,3):
-            # 数据预处理（产生训练数据和测试数据）
-            filename='dataset.txt'
-            df_train_filename,df_test_filename = pretreatment_dataset(filename, 0.85)
-            train(df_train_filename)
-            precision_p, recall_p = test(df_test_filename)
-            precision_list.append(100*precision_p)
-            recall_list.append(100*recall_p)
-        print(sum(precision_list[0:len(precision_list)])/len(precision_list),sum(recall_list[0:len(recall_list)])/len(recall_list))
-        x = range(1,3,1)
-        plt.figure(figsize=(8,6), dpi=80)
-        plt.title("C4.5 decision tree")
-        plt.xlabel("train(%)") 
-        plt.ylabel("%") 
-        plt.plot(x,precision_list, label="precision")
-        plt.plot(x,recall_list, label="recall")
-        plt.legend(loc='upper right')
-        # plt.ylim(0,100)
-        plt.show()
-    else:
-        df_test_filename='df_test.csv'
-        precision_p, recall_p = test(df_test_filename)
-        print("查准率",precision_p,",查全率",recall_p)
+    df_test_filename = "test_data.csv"
+    test(df_test_filename)
 
 
         
