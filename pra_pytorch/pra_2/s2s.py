@@ -11,6 +11,7 @@ from torch import optim
 import torch.nn.functional as F
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("cuda" if torch.cuda.is_available() else "cpu")
 # 转换模块
 SOS_token = 0
 EOS_token = 1
