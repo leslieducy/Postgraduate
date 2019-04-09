@@ -1,4 +1,4 @@
-# 这里是一个出租车请求的模拟预测模型
+# 这里是一个出租车请求的强化学习模型
 ## 数据集：
 ### 1. 司机表设计（taximan）
 |字段名|类型|值介绍|
@@ -13,7 +13,7 @@
 |start_road|number|司机当天开始工作的起始位置(由经纬度得到)|
 |end_LNG|float|司机当天结束工作的最终位置经度|
 |end_LAT|float|司机当天结束工作的最终位置纬度|
-|end_Road|number|司机当天结束工作的最终位置(由经纬度得到)|
+|end_road|number|司机当天结束工作的最终位置(由经纬度得到)|
 ### 2. 订单表设计（request）
 |字段名|类型|值介绍|
 |:-|:-|:-|
@@ -32,7 +32,7 @@
 ```
 1. 创建司机表并导入数据
 create table taximan as
-select taximan_ID, start_time, end_time, day_no, income, 
+select distinct taximan_ID, start_time, end_time, day_no, income, 
   ton1.ONLON as start_LNG, ton1.ONLAT as start_LAT, ton1.ROADPOINTBELONG as start_road,
   ton2.OFFLON as end_LNG, ton2.OFFLAT as end_LAT, ton2.ROADPOINTBELONG as end_road
 from (select t1.UNIT_ID as taximan_ID,to_char(min(t1.ONTIME),'HH24:mi:ss') as start_time,to_char(max(t2.OFFTIME),'HH24:mi:ss') as end_time,
@@ -52,3 +52,12 @@ select t1.BUSINESSHIS_ID as request_ID, to_char(t1.ONTIME,'yyyy-mm-dd') as day_n
 from ALL_ROADNETWORK345_ON t1,ALL_ROADNETWORK345_OFF_NEXT t2
 where t1.businesshis_id=t2.businesshis_id
 ```
+## 模拟
+1. 原始收入情况
+
+直接读取数据
+
+2. 强化学习后的收入情况
+
+根据某一司机的情况进行选择，从出发时刻开始，
+   
