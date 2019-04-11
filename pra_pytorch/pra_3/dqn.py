@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-import gym
+# import gym
 import cx_Oracle as cx      #导入模块
 import datetime
 import matplotlib.pyplot as plt
@@ -12,7 +12,7 @@ LR = 0.01                   # learning rate
 EPSILON = 0.9               # 最优选择动作百分比
 GAMMA = 0.9                 # 奖励递减参数
 TARGET_REPLACE_ITER = 100   # Q 现实网络的更新频率
-MEMORY_CAPACITY = 3000      # 记忆库大小
+MEMORY_CAPACITY = 10000      # 记忆库大小
 N_ACTIONS = 1049  # 动作总数
 N_STATES = 1049   # 状态总数
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -111,6 +111,7 @@ class DQN(object):
         self.optimizer.step()
 
 def get_init_state():
+    
     state_list = [0] * N_STATES
     state_list[409] = 1
     time = [0,9,0]
@@ -126,14 +127,14 @@ def get_step_state(a):
     if data:
         s_num, exp_time, r = data[10], data[4], data[2]
         s_ = [0] * N_STATES
-        s_[s_num] = 1
+        s_[s_num - 1] = 1
         return s_, r, exp_time
     else:
         return None, None, ''
 dqn = DQN()
 mon_plt = []
 # 训练次数
-train_n = 500
+train_n = 30
 for i_episode in range(train_n):
     s, time = get_init_state()
     money = 0
