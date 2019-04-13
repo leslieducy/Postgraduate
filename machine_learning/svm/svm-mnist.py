@@ -4,20 +4,24 @@ import numpy as np
 from numpy import linalg
 import cvxopt
 
+import matplotlib.pyplot as plt
 import pylab as pl
 
-def generate_data():
-    m1 = loadmat("./data/usps_train.mat")
-    m2 = loadmat("./data/usps_train_labels.mat")
-    usps_all = m1['usps_train']
-    usps_all_labels = m2['usps_train_labels']
-    usps_all_labels = np.array(usps_all_labels,dtype=float).flatten()
-    # usps_all_labels = np.where(usps_all_labels == 1.,1.0,-1.0)
-    # print(usps_all_labels)
+def generate_data(cut_idx, end_idx):
+    m1 = loadmat("./data/mnist_train.mat")
+    m2 = loadmat("./data/mnist_train_labels.mat")
+    # print(m1.keys(),m2.keys())
+    usps_all = np.array(m1['mnist_train'],dtype=float)/255
+    usps_all_labels = np.array(m2['mnist_train_labels'],dtype=float).flatten()
+    
     # 切分训练与测试数据集
-    cut_idx = int(len(usps_all)*1/2)
-    df_train, df_test = usps_all[:cut_idx], usps_all[cut_idx:]
-    df_train_labels, df_test_labels = usps_all_labels[:cut_idx], usps_all_labels[cut_idx:]
+    # cut_idx = 2000
+    # end_idx = 3000
+    # df_train, df_test = usps_all[:cut_idx], usps_all[cut_idx:]
+    df_train, df_test = usps_all[:cut_idx], usps_all[cut_idx:end_idx]
+    # df_train_labels, df_test_labels = usps_all_labels[:cut_idx], usps_all_labels[cut_idx:]
+    df_train_labels, df_test_labels = usps_all_labels[:cut_idx], usps_all_labels[cut_idx:end_idx]
+    print(set(usps_all_labels))
     return df_train,df_train_labels,df_test,df_test_labels
 
 def split_train_dict(df_train,df_train_labels):
@@ -26,6 +30,7 @@ def split_train_dict(df_train,df_train_labels):
         if label not in train_dict:
             train_dict[label] = []
         train_dict[label].append(feature)
+    # print(train_dict.keys())
     return train_dict
 
 def recombine(key_a, feature_list_a, key_b, feature_list_b):
@@ -81,7 +86,7 @@ class SVM(object):
         solution = cvxopt.solvers.qp(P, q, G, h, A, b)
         alafa = np.ravel(solution['x'])
         # print(alafa)
-        sv = alafa>1e-7
+        sv = alafa>1e-4
         # print(sv)
         index = np.arange(row)[sv]
         self.alafa = alafa[sv]
@@ -117,31 +122,27 @@ class TestAndTrain(object):
 
     def trainSVM (self,X_train,y_train):
         y_train = np.where(y_train == self.a,1.0,-1.0)
+        print(X_train)
         self.clf.fit(X_train, y_train)
 
     def predictSVM(self,X_test):
         y_predict = self.clf.predict(X_test)
         y_predict = np.where(y_predict == 1.0,self.a,self.b)
-        # print(y_predict)
-        # print(y_test)
-        # correct = np.sum(y_predict == y_test)
-        # print("%d out of %d predictions correct" % (correct, len(y_predict)))
         return y_predict
         # self.plot_contour(X_train[y_train==1], X_train[y_train==-1], clf,kernel_type,p)
 
-
-if __name__ == "__main__":
-
+def start_train(cut_idx, end_idx):
 
     # tt.trainSVM(X_train,y_train,X_test,y_test,'liner')
     # tt.trainSVM(X_train,y_train,X_test,y_test,'liner',3,0.5)
     # tt.trainSVM(X_train,y_train,X_test,y_test,'gaussion',5)
 
-    X_train,y_train,X_test,y_test = generate_data()
+    X_train,y_train,X_test,y_test = generate_data(cut_idx, end_idx)
     train_dict = split_train_dict(X_train,y_train)
     # print(train_dict.keys())
     SVM_dict = {}
     train_keys = train_dict.keys()
+    print("开始训练...")
     # 抽取数据1对1训练：
     for vs_a in train_keys:
         for vs_b in train_keys:
@@ -156,16 +157,12 @@ if __name__ == "__main__":
 
     # 用测试数据对其测试结果
     # 构建DAG
-    # 使用frozenset保存当前划分的类别，当前为[1,2,...,10]
+    # 使用frozenset保存当前划分的类别，当前为[0,2,...,9]
     print("开始测试")
-    result = np.array([frozenset(range(1,11)) for _ in range(len(X_test))])
+    result = np.array([frozenset(range(0,10)) for _ in range(len(X_test))])
     predict_array = np.column_stack((np.array(X_test),result))
-    # tt = SVM_dict[frozenset((4,8))]
-    # print(SVM_dict[frozenset((1,10))].a,SVM_dict[frozenset((2,8))].a)
-    # y_predict = tt.predictSVM(X_test)
-    # y_pred = y_predict
-    for vs_a in range(1,11):
-        for vs_b in range(10,0,-1):
+    for vs_a in range(0,10):
+        for vs_b in range(9,-1,-1):
             # print(vs_a, vs_b)
             # print(predict_array[1:10,-1])
             if vs_a == vs_b:
@@ -184,10 +181,26 @@ if __name__ == "__main__":
                 new = set(old)
                 new.remove(vs_a if pred == vs_b else vs_b)
                 predict_array[ind][-1] = frozenset(new)
-    print("结果",predict_array[:,-1])
+    # print("结果",predict_array[:,-1])
     y_pred = [list(x)[0] for x in predict_array[:,-1]]
     correct = np.sum(y_pred == y_test)
     print("%d out of %d predictions correct" % (correct, len(y_pred)))
     print("正确率为：" , correct/len(y_pred))
+    return correct/len(y_pred)
 
+
+if __name__ == "__main__":
+    correct_ratio_list = []
+    for i in range(1000,4000,300):
+        correct_ratio = start_train(i, i+1200)
+        correct_ratio_list.append(correct_ratio)
+    x = range(1000,4000,300)
+    plt.figure(figsize=(8,6), dpi=80)
+    plt.title("SVM MNIST")
+    plt.xlabel("train(%)") 
+    plt.ylabel("train size") 
+    plt.plot(x,correct_ratio_list, label="precision")
+    plt.legend(loc='upper right')
+    plt.xlim(1000,4000)
+    plt.show()
 

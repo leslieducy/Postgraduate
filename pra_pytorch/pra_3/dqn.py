@@ -162,6 +162,7 @@ for i_episode in range(train_n):
         money += r
     print("第",i_episode,"次：",money)
     mon_plt.append(money)
+print(np.mean(mon_plt))
 x = range(0,train_n,1)
 plt.figure(figsize=(8,6), dpi=80)
 plt.title("DQN")
