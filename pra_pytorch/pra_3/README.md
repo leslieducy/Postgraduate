@@ -28,6 +28,11 @@
 |off_LNG|float|订单的目的位置经度|
 |off_LAT|float|订单的目的位置纬度|
 |off_road|number|订单的目的位置(由经纬度得到)|
+### 3. 邻路表设计（neighbor）
+|字段名|类型|值介绍|
+|:-|:-|:-|
+|pri_road|number|路段号|
+|nei_road|number|一个相邻的路段号|
 ### Oracle数据导入的SQL语句
 ```
 1. 创建司机表并导入数据
@@ -51,6 +56,10 @@ select t1.BUSINESSHIS_ID as request_ID, to_char(t1.ONTIME,'yyyy-mm-dd') as day_n
   t2.OFFLON as end_LNG, t2.OFFLAT as end_LAT, t2.ROADPOINTBELONG as end_road
 from ALL_ROADNETWORK345_ON t1,ALL_ROADNETWORK345_OFF_NEXT t2
 where t1.businesshis_id=t2.businesshis_id
+
+3. 创建相邻路段表（neighbor）
+create table neighbor as 
+select c1.VERTEXNEARROAD as pri_road,c2.VERTEXNEARROAD as nei_road from ROADVERTEX c1,ROADVERTEX c2 where c1.VERTEXID=c2.VERTEXID
 ```
 ## 模拟
 1. 原始收入情况
@@ -59,5 +68,23 @@ where t1.businesshis_id=t2.businesshis_id
 
 2. 强化学习后的收入情况
 
-根据某一司机的情况进行选择，从出发时刻开始，
+根据某一司机的情况进行选择，从出发时刻开始，查看全局的订单，根据qdn的学习作出选择，一直到下一天。
+
+3. 其他方法的收入情况
    
+## 问题记录：
+1. 司机可选择订单的操作从数据库读取太慢。
+> 解决：建一个临时请求表，只包含一天的数据。
+2. 强化学习与随机选择的区别：
+强化100次平均值：135302.0,108856.5,133758.0,131681.5
+随机所有司机的平均值：152703.513174404
+3. 回报值的问题
+
+## 类抽象
+1. 司机类
+接取订单
+2. 订单类
+3. 道路类
+返回邻路
+4. DQN类
+
