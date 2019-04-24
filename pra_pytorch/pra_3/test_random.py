@@ -15,7 +15,7 @@ reqday = reqday.Reqday(start_datatime,con)
 car_all = []
 cursor = con.cursor()       #创建游标
 cursor.execute("select * from taximan t where DAY_NO = '%s'" % start_datatime.strftime("%Y-%m-%d"))
-car_data_list = cursor.fetchall()       #获取一条数据
+car_data_list = cursor.fetchall()       #获取所有数据
 cursor.close()
 car_all = [car.Car(car_data,con) for car_data in car_data_list]
 

@@ -58,8 +58,12 @@ from ALL_ROADNETWORK345_ON t1,ALL_ROADNETWORK345_OFF_NEXT t2
 where t1.businesshis_id=t2.businesshis_id
 
 3. 创建相邻路段表（neighbor）
-create table neighbor as 
-select c1.VERTEXNEARROAD as pri_road,c2.VERTEXNEARROAD as nei_road from ROADVERTEX c1,ROADVERTEX c2 where c1.VERTEXID=c2.VERTEXID
+create table neighbor1 as 
+select c1.VERTEXNEARROAD as pri_road,c2.VERTEXNEARROAD as nei_road from ROADVERTEX c1,ROADVERTEX c2 where c1.VERTEXID=c2.VERTEXID and c1.VERTEXNEARROAD != c2.VERTEXNEARROAD
+
+4. 创建道路属性表（road_prop）
+create table road_prop as
+select c1.VERTEXNEARROAD as road_id, c1.VERTEXID as pri_vertex,c2.VERTEXID as nei_vertex from ROADVERTEX c1,ROADVERTEX c2 where c1.VERTEXNEARROAD=c2.VERTEXNEARROAD and c1.VERTEXID!=c2.VERTEXID
 ```
 ## 模拟
 1. 原始收入情况
@@ -88,3 +92,5 @@ select c1.VERTEXNEARROAD as pri_road,c2.VERTEXNEARROAD as nei_road from ROADVERT
 返回邻路
 4. DQN类
 
+## 聚类
+新建道路属性表，并手动新建CLUSTER_TYPE字段，并通过聚类（层次）算法得到不同道路所属的类别（即区域），更新回CLUSTER_TYPE字段。

@@ -13,12 +13,13 @@ EPSILON = 0.9               # 最优选择动作百分比
 GAMMA = 0.95                # 奖励递减参数
 TARGET_REPLACE_ITER = 100   # Q 现实网络的更新频率
 MEMORY_CAPACITY = 1000      # 记忆库大小
-N_ACTIONS = 1049  # 动作总数
+N_ACTIONS = 8  # 动作总数
 N_STATES = 1049   # 状态总数
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 DATA = [2013,5,4]
 con = cx.connect('test', 'herron', '127.0.0.1:1521/TestDatabase')  #创建连接
 FINISHED_LIST = []
+ROAD_AREA = []
 
 class Net(nn.Module):
     def __init__(self):
@@ -52,15 +53,27 @@ class DQN(object):
         end_road_list = query_has_action(x, time)
         if end_road_list is None or len(end_road_list) == 0:
             return None
+        area_useful = []
+        for item in end_road_list:
+            if ROAD_AREA[item[1]] not in area_useful:
+                area_useful.append(ROAD_AREA[item[1]])
         x = torch.unsqueeze(torch.FloatTensor(x), 0).to(device)
         # input only one sample
         if np.random.uniform() < EPSILON:   # greedy
             actions_value = self.eval_net.forward(x).cpu().data.numpy()[0]
-            action, max_prob = None, actions_value[end_road_list[0][1]-1]-1
-            for item in end_road_list:
-                if actions_value[item[1]-1] > max_prob:
-                    action = item
-                    max_prob = actions_value[item[1]-1]
+            sel_area_pos, max_prob = None, actions_value[area_useful[0]]-1
+            for item in area_useful:
+                if actions_value[item] > max_prob:
+                    sel_area_pos = item
+                    max_prob = actions_value[item]
+            
+            road_all = [i for i,v in enumerate(ROAD_AREA) if v==(sel_area_pos+1)]
+            max_action = end_road_list[0]
+            for road_item in road_all:
+                for item in end_road_list:
+                    if item[1] == road_item and item[2] > max_action[2]:
+                        max_action = item
+            action = max_action
         else:   # random
             rand = np.random.randint(0, len(end_road_list))
             action = end_road_list[rand]
@@ -133,7 +146,8 @@ def query_has_action(x, time):
         end_road_list = []
         for item in data:
             if item[0] not in FINISHED_LIST:
-                end_road_list.append((item[0],item[10]))
+                # id，end_road，money
+                end_road_list.append((item[0],item[10],item[2]))
                 
         # print(len(end_road_list))
         if len(end_road_list)>1:
@@ -146,7 +160,7 @@ def get_init_state():
     time = [0,9,0]
     end_road_list = query_has_action(state_list,time)
     for item in end_road_list:
-        if item == start_road:
+        if item[1] == start_road+1:
             continue
         state_list[item[1]-1] = 0
     return state_list,time
@@ -156,7 +170,6 @@ def get_step_state(a):
     cursor = con.cursor()       #创建游标
     cursor.execute("select * from TEM_REQ t where REQUEST_ID = '" + str(a)+"'")  #执行sql语句
     data = cursor.fetchone()       #获取一条数据
-    # print(a)
     cursor.close()  #关闭游标
     if data:
         s_no, exp_time, r = data[10], data[4], data[2]
@@ -173,8 +186,20 @@ def get_step_state(a):
     else:
         print("没有数据")
         return None, None, ''
+
+def init_area():
+    cursor = con.cursor()       #创建游标
+    cursor.execute("select distinct ROAD_ID,CLUSTER_TYPE from ROAD_PROP t ")  #执行sql语句
+    data_list = cursor.fetchall()
+    cursor.close()  #关闭游标
+    ret_list = [-1]*1050
+    for (road_id,cluster_type) in data_list:
+        ret_list[road_id] = cluster_type
+    return ret_list
+
 dqn = DQN()
 mon_plt = []
+ROAD_AREA = init_area()
 # 训练次数
 train_n = 500
 for i_episode in range(train_n):
@@ -202,7 +227,8 @@ for i_episode in range(train_n):
         # 修改 reward, 使 DQN 快速学习
         # r = r1 + r2
         # 存记忆
-        dqn.store_transition(s, q_a[1], r, s_)
+        area = ROAD_AREA[q_a[1]]
+        dqn.store_transition(s, area, r, s_)
         if dqn.memory_counter > MEMORY_CAPACITY:
             dqn.learn() # 记忆库满了就进行学习
         s = s_
