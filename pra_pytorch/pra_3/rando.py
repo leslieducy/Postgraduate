@@ -11,8 +11,8 @@ BATCH_SIZE = 512
 LR = 0.05                   # learning rate
 EPSILON = 0.9               # 最优选择动作百分比
 GAMMA = 0.95                # 奖励递减参数
-TARGET_REPLACE_ITER = 80   # Q 现实网络的更新频率
-MEMORY_CAPACITY = 800      # 记忆库大小
+TARGET_REPLACE_ITER = 100   # Q 现实网络的更新频率
+MEMORY_CAPACITY = 1000      # 记忆库大小
 N_ACTIONS = 8  # 动作总数
 N_STATES = 1049   # 状态总数
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -20,9 +20,6 @@ DATA = [2013,5,4]
 con = cx.connect('test', 'herron', '127.0.0.1:1521/TestDatabase')  #创建连接
 FINISHED_LIST = []
 ROAD_AREA = []
-LOSS_LIST = []
-# 训练次数
-train_n = 300
 
 class Net(nn.Module):
     def __init__(self):
@@ -52,7 +49,7 @@ class DQN(object):
         self.memory = np.zeros((MEMORY_CAPACITY, N_STATES * 2 + 2))     # 初始化记忆库
         self.optimizer = torch.optim.Adam(self.eval_net.parameters(), lr=LR)    # torch 的优化器
         self.loss_func = nn.MSELoss()   # 误差公式
-    def choose_action(self, x, time, random = False):
+    def choose_action(self, x, time):
         end_road_list = query_has_action(x, time)
         if end_road_list is None or len(end_road_list) == 0:
             return None
@@ -61,25 +58,9 @@ class DQN(object):
             if ROAD_AREA[item[1]] not in area_useful:
                 area_useful.append(ROAD_AREA[item[1]])
         x = torch.unsqueeze(torch.FloatTensor(x), 0).to(device)
-        # input only one sample
-        if np.random.uniform() < EPSILON and random is False:   # greedy
-            actions_value = self.eval_net.forward(x).cpu().data.numpy()[0]
-            sel_area_pos, max_prob = None, actions_value[area_useful[0]]-1
-            for item in area_useful:
-                if actions_value[item] > max_prob:
-                    sel_area_pos = item
-                    max_prob = actions_value[item]
-            
-            road_all = [i for i,v in enumerate(ROAD_AREA) if v==(sel_area_pos+1)]
-            max_action = end_road_list[0]
-            for road_item in road_all:
-                for item in end_road_list:
-                    if item[1] == road_item and item[2] > max_action[2]:
-                        max_action = item
-            action = max_action
-        else:   # random
-            rand = np.random.randint(0, len(end_road_list))
-            action = end_road_list[rand]
+       
+        rand = np.random.randint(0, len(end_road_list))
+        action = end_road_list[rand]
         return action
     def store_transition(self, s, a, r , s_):
         transition = np.hstack((s, [a, r], s_))
@@ -107,8 +88,7 @@ class DQN(object):
         q_target = b_r + GAMMA * q_next.max(1)[0].view(BATCH_SIZE, 1).to(device)   # shape (batch, 1)
         # print(q_eval,q_target)
         loss = self.loss_func(q_eval, q_target)
-        # print("损失函数值：",loss.cpu().detach().numpy())
-        LOSS_LIST.append(loss.cpu().detach().numpy())
+        # print("损失函数值：",loss)
         # 计算, 更新 eval net
         self.optimizer.zero_grad()
         loss.backward()
@@ -176,26 +156,17 @@ def get_step_state(a):
     data = cursor.fetchone()       #获取一条数据
     cursor.close()  #关闭游标
     if data:
-        s_no, exp_time, rm = data[10], data[4], data[2]
+        s_no, exp_time, r = data[10], data[4], data[2]
         s_ = [-1] * N_STATES
         s_[s_no - 1] = 1
-        r = 0
         end_road_list = query_has_action(s_,time)
         if end_road_list is None:
-            return None, rm, exp_time,r
-        # 当前收益越大，reward越大
-        r = 1 if rm > 10000 else rm/10000
-        # avg,ma = 0,0
-        # for item in end_road_list:
-        #     avg += (item[2]/len(end_road_list))
-        #     if item[2] > ma :
-        #         ma = item[2]
-        #     if item[1] == s_no:
-        #         continue
-        #     s_[item[1]-1] = 0
-        # r += 0.5 if avg > 1500 else avg/3000
-        # r += 0.5 if ma > 8000 else ma/16000
-        return s_, rm, exp_time, r
+            return None, r, exp_time
+        for item in end_road_list:
+            if item[1] == s_no:
+                continue
+            s_[item[1]-1] = 0
+        return s_, r, exp_time
     else:
         print("没有数据")
         return None, None, ''
@@ -213,6 +184,8 @@ def init_area():
 dqn = DQN()
 mon_plt = []
 ROAD_AREA = init_area()
+# 训练次数
+train_n = 300
 for i_episode in range(train_n):
     FINISHED_LIST = []
     s, time = get_init_state()
@@ -227,9 +200,9 @@ for i_episode in range(train_n):
         # 得到环境反馈
         # print("开始获取反馈")
         area = ROAD_AREA[q_a[1]]
-        s_, rm, exp_time,r = get_step_state(q_a[0])
+        s_, r, exp_time = get_step_state(q_a[0])
         # print(time, exp_time)
-        money += rm
+        money += r
         if s_ is None:
             # 没有找到下一个动作, 进入下回合
             break
@@ -245,24 +218,13 @@ for i_episode in range(train_n):
         s = s_
     print("第",i_episode,"次：",money)
     mon_plt.append(money)
-print("DQN平均值：",np.mean(mon_plt))
+print("Random平均值：",np.mean(mon_plt))
 x = range(0,train_n,1)
 plt.figure(figsize=(8,6), dpi=80)
-plt.title("DQN")
+plt.title("Random")
 plt.xlabel("train(reward)")
 plt.ylabel("n")
 plt.plot(x, mon_plt, label="precision")
-plt.legend(loc='upper right')
-# plt.ylim(0,100)
-plt.show()
-y = np.array(LOSS_LIST)
-y[y > 1] = 1
-x = range(0,len(y),1)
-plt.figure(figsize=(8,6), dpi=80)
-plt.title("DQN")
-plt.xlabel("loss")
-plt.ylabel("n")
-plt.plot(x, y, label="precision")
 plt.legend(loc='upper right')
 # plt.ylim(0,100)
 plt.show()
