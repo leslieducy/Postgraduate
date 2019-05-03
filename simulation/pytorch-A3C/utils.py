@@ -55,7 +55,7 @@ def record(global_ep, global_ep_r, ep_r, res_queue, name):
         if global_ep_r.value == 0.:
             global_ep_r.value = ep_r
         else:
-            global_ep_r.value = global_ep_r.value * 0.99 + ep_r * 0.01
+            global_ep_r.value = global_ep_r.value * 0.9 + ep_r * 0.1
     res_queue.put(global_ep_r.value)
     print(
         name,

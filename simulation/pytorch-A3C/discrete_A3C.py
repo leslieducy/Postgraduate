@@ -83,6 +83,8 @@ class Worker(mp.Process):
             while True:
                 if self.name == 'w0':
                     self.env.render()
+                # print("s:",s)
+                # print("s[None, :]:",s[None, :])
                 a = self.lnet.choose_action(v_wrap(s[None, :]))
                 s_, r, done, _ = self.env.step(a)
                 if done: r = -1
@@ -112,7 +114,6 @@ if __name__ == "__main__":
 
     # parallel training
     workers = [Worker(gnet, opt, global_ep, global_ep_r, res_queue, i) for i in range(mp.cpu_count())]
-    print(len(workers))
     [w.start() for w in workers]
     res = []                    # record episode reward to plot
     while True:

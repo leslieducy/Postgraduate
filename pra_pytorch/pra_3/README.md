@@ -61,6 +61,7 @@ where t1.businesshis_id=t2.businesshis_id
 create table neighbor1 as 
 select c1.VERTEXNEARROAD as pri_road,c2.VERTEXNEARROAD as nei_road from ROADVERTEX c1,ROADVERTEX c2 where c1.VERTEXID=c2.VERTEXID and c1.VERTEXNEARROAD != c2.VERTEXNEARROAD
 
+单路口的路段没有包含进来
 4. 创建道路属性表（road_prop）
 create table road_prop as
 select c1.VERTEXNEARROAD as road_id, c1.VERTEXID as pri_vertex,c2.VERTEXID as nei_vertex from ROADVERTEX c1,ROADVERTEX c2 where c1.VERTEXNEARROAD=c2.VERTEXNEARROAD and c1.VERTEXID!=c2.VERTEXID

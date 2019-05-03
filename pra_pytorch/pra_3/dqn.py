@@ -168,7 +168,7 @@ def get_init_state():
             continue
         state_list[item[1]-1] = 0
     return state_list,time
-def get_step_state(a):
+def get_step_state(a, time):
     if a == None:
         return None, None, ''
     cursor = con.cursor()       #创建游标
@@ -227,7 +227,7 @@ for i_episode in range(train_n):
         # 得到环境反馈
         # print("开始获取反馈")
         area = ROAD_AREA[q_a[1]]
-        s_, rm, exp_time,r = get_step_state(q_a[0])
+        s_, rm, exp_time,r = get_step_state(q_a[0],time)
         # print(time, exp_time)
         money += rm
         if s_ is None:
