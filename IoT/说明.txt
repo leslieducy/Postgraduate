@@ -1,0 +1,9 @@
+﻿1. 安装python3
+2. shift+鼠标右键，选择在此处打开powershell（或者cmd）窗口
+3. 在命令行中使用命令pip install numpy，会自动安装依赖包
+4. 继续在命令行中使用命令pip install matplotlib安装依赖包
+5. 运行python .\test.py开始执行代码
+修改与新增：
+代码运行时间都会比较久，实验100次，计算能修复的次数得到概率p。
+1. 运行python .\angle_plot.py得到角度与概率的图
+2. 运行python .radius_plot.py得到角半径与概率的图
