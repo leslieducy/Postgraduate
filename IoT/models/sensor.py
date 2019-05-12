@@ -14,7 +14,7 @@ class Sensor():
     # 返回覆盖的所有点
     def coverSize(self):
         ret_list = []
-        for i in range(self.x-self.radius, self.x+self.radius):
+        for i in range(int(self.x-self.radius), int(self.x+self.radius)):
             for j in range(self.y-self.radius, self.y+self.radius):
                 # 大于半径的都去除
                 if math.pow(i-self.x,2)+math.pow(j-self.y,2) > math.pow(self.radius,2):

@@ -21,14 +21,19 @@ class Area():
 
     # 标准传感器分布
     def standardSensor(self):
-        i,j = 45,200
-        energy_list = [53,60,80,50,10,76,55,39,66,94]
-        # 标准传感器分布，两个传感器间的距离d=2*sin(a/2)，离标准线的高h=r*cos(a/2)
-        d = int(2*math.sin(self.ANGLE/2))
-        h = int(math.cos(self.ANGLE/2))
-        while i < self.width:
-            self.ss_list.append(sensor.Sensor(i, j+d, -60, energy_list[int(i/100)], self.RADIUS, self.ANGLE))
-            i += h
+        i,j = self.RADIUS * math.sin(math.pi * (abs(self.ANGLE)/2)/180),200
+        # 标准传感器分布，两个传感器间的距离d=2*r*sin(a/2)，离标准线的高h=r*cos(a/2)，构造标准分布的偏转角b=90-a/2
+        d = int(2 * self.RADIUS * math.sin(math.pi * (abs(self.ANGLE)/2)/180))
+        h = int(self.RADIUS * math.cos(math.pi * (abs(self.ANGLE)/2)/180))
+        # 随机从20-100产生能量值,从中选出一个能量设为10（即产生的空洞）
+        energy_num = int(self.width/d)
+        x = random.randint(0, energy_num)
+        for n in range(energy_num):
+            energy = random.randint(20,100)
+            if n == x:
+                energy = 10
+            self.ss_list.append(sensor.Sensor(i, j+h, -(90-abs(self.ANGLE)/2), energy, self.RADIUS, self.ANGLE))
+            i += d
 
     # 随机生成备用传感器
     def backupRandomSensor(self, num=3):

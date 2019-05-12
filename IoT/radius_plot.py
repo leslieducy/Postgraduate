@@ -1,10 +1,10 @@
 from models import area, sensor
 import matplotlib.pyplot as plt
 
-radius_list = list(range(100, 300, 10))
+radius_list = list(range(10, 250, 10))
 # angle_list = range(0, -180, -5)
 # RADIUS =  100
-ANGLE = -60
+ANGLE = -30
 
 result_list = []
 # 实验次数 ，用来计算修复的成功率 p = 成功修复次数/总次数。 
@@ -29,8 +29,8 @@ for RADIUS in radius_list:
         if success_tag:
             success_num += 1
     # 计算成功率
-    print("RADIUS",RADIUS)
-    print(success_num,"修补成功率！")
+    print("半径:",RADIUS)
+    print("修补成功率:",success_num/test_num)
     # print("半径",RADIUS,"的", success_num,"修补成功率！" )
     result_list.append(success_num/test_num)
 
