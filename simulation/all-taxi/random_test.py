@@ -7,6 +7,9 @@ import numpy as np
 # 司机选择订单的属性（0-4）（随机，贪心，评估，强化）
 SELECT_TYPE = 0
 
+# 计时
+START_T = dati.datetime.now()
+
 con = cx.connect('test', 'herron', '127.0.0.1:1521/TestDatabase')  #创建连接
 # 初始化时间状态及订单发布平台
 start_datatime = dati.datetime.strptime('2013-05-04 00:05:00', '%Y-%m-%d %H:%M:%S')
@@ -31,11 +34,23 @@ while now_datatime.strftime("%Y-%m-%d") == start_datatime.strftime("%Y-%m-%d"):
     now_datatime += dati.timedelta(minutes=1)
 
 con.close()
+
+# 计时
+END_T = dati.datetime.now()
+print("共花费%s秒" % str((END_T-START_T).seconds))
+
 # 所有司机收入图
 mon_plt = []
 for car in car_all:
     mon_plt.append(car.income)
 print("Random:",np.mean(mon_plt))
+print("已完成订单数:", len(reqday.over_req))
+
+import pandas as pd
+columns = ["income"]
+test=pd.DataFrame(columns=columns, data=mon_plt)
+test.to_csv('Random.csv', encoding='utf-8')
+
 x = range(0,len(mon_plt),1)
 plt.figure(figsize=(8,6), dpi=80)
 plt.title("Random")

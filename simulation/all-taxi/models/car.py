@@ -7,7 +7,7 @@ class Car(object):
         self.id = id
         self.dbcon = con
         self.day_no = str(car_data[3])
-        self.finished = []    
+        self.finished = []
         self.start_road_id = car_data[7]
         self.start_time = dati.datetime.strptime((self.day_no + car_data[1]), '%Y-%m-%d%H:%M:%S')
         self.next_road_id = self.start_road_id
@@ -16,7 +16,7 @@ class Car(object):
         self.income = 0
     
     # 每分钟都遍历一下状态，决定下一步动作
-    def getStaus(self, datatime, reqday, sel_type=0):
+    def getStaus(self, datatime, reqday, sel_type=0, nn=None):
         # 正在完成订单中，跳过状态检测
         if datatime < self.next_time:
             return
@@ -33,7 +33,9 @@ class Car(object):
         elif sel_type == 2:
             self.evaluateSelect(req_all, datatime, reqday, now_road)
         elif sel_type == 3:
-            self.a3cSelect(req_all, datatime, reqday, now_road)
+            self.dqnSelect(req_all, datatime, reqday, now_road, nn)
+        elif sel_type == 4:
+            self.acSelect(req_all, datatime, reqday, now_road, nn)
 
     # 随机选择:从当前路段周围的订单中随机选择
     def randomSelect(self, req_all, datatime, reqday, now_road):
@@ -113,17 +115,63 @@ class Car(object):
             if self.wandering_num > 5:
                 self.next_road_id = now_road.getGreedyNeighbor()
 
-    # 强化学习
-    def greedySelect(self, req_all, datatime, reqday, now_road):
+    # dqn强化学习
+    def dqnSelect(self, req_all, datatime, reqday, now_road, dqn):
         # 判断是否有订单可选择,没有则游荡
         if len(req_all) > 0:
-            pre_sel_list = []
-            if len(req_all) < 3:
-                pre_sel_list = req_all
-            else:
-                req_all.sort(key=lambda x:x[2], reverse=True)
-                pre_sel_list = req_all[0:3]
-            req = pre_sel_list[random.randrange(0,len(pre_sel_list))]
+            # 根据聚类区域学习,选择订单
+            road_area = now_road.init_area()
+            req = dqn.choose_action(self.next_road_id, req_all, road_area)
+            # 选择的区域不存在订单
+            if isinstance(req, int):
+                # 存储当前路段号、订单所属区域、回报、下一个路段号
+                dqn.store_transition(self.next_road_id, req, 0, self.next_road_id)
+                dqn.learn()
+                # 没有选择则重新选择
+                req = dqn.choose_action(self.next_road_id, req_all, road_area)
+                return
+
+            # 当前收益越大，reward越大
+            r = req[2]
+            # 存储当前路段号、订单所属区域、回报、下一个路段号
+            dqn.store_transition(self.next_road_id, road_area[req[10]-1], r, req[10])
+            # rm = req[2]
+            # r = 1 if rm > 10000 else rm/10000
+            dqn.learn()
+
+            self.accept_req(req, datatime)
+            self.wandering_num = 0
+            reqday.overReq(req[0])
+        else:
+            self.wandering_num += 1
+            # 闲逛超过五分钟随机进入下一路段
+            if self.wandering_num > 5:
+                self.next_road_id = now_road.getGreedyNeighbor()
+
+    # ac强化学习
+    def acSelect(self, req_all, datatime, reqday, now_road, acn):
+        # 判断是否有订单可选择,没有则游荡
+        if len(req_all) > 0:
+            # 根据聚类区域学习,选择订单
+            road_area = now_road.init_area()
+            req = acn.choose_action(self.next_road_id, req_all, road_area)
+            # 选择的区域不存在订单
+            while isinstance(req, int):
+                # 存储当前路段号、订单所属区域、回报、下一个路段号
+                acn.store_transition(self.next_road_id, req, 0, self.next_road_id)
+                acn.learn()
+                # 没有选择则重新选择
+                req = acn.choose_action(self.next_road_id, req_all, road_area)
+                return
+
+            # 当前收益越大，reward越大
+            r = req[2]
+            # 存储当前路段号、订单所属区域、回报、下一个路段号
+            acn.store_transition(self.next_road_id, road_area[req[10]-1], r, req[10])
+            # rm = req[2]
+            # r = 1 if rm > 10000 else rm/10000
+            acn.learn()
+
             self.accept_req(req, datatime)
             self.wandering_num = 0
             reqday.overReq(req[0])

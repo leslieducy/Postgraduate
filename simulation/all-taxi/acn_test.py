@@ -1,11 +1,11 @@
-from models import reqday, car
+from models import reqday, car, acn
 import datetime as dati
 import cx_Oracle as cx      #导入模块
 
 import matplotlib.pyplot as plt
 import numpy as np
-# 司机选择订单的属性（0-4）（随机，贪心，评估，强化）
-SELECT_TYPE = 2
+# 司机选择订单的属性（0-3）（随机，贪心，评估，强化）
+SELECT_TYPE = 4
 
 # 计时
 START_T = dati.datetime.now()
@@ -17,6 +17,8 @@ now_datatime = start_datatime
 reqday = reqday.Reqday(start_datatime,con)
 # print(start_datatime.strftime("%Y-%m-%d"))
 
+# 初始化ACN神经网络
+acn = acn.ACNet()
 # 初始化所有出租车
 car_all = []
 cursor = con.cursor()       #创建游标
@@ -28,9 +30,9 @@ car_all = [car.Car(car_data,con) for car_data in car_data_list]
 # 时间开始循环，直至下一天
 while now_datatime.strftime("%Y-%m-%d") == start_datatime.strftime("%Y-%m-%d"):
     for car in car_all:
-        car.getStaus(now_datatime, reqday, SELECT_TYPE)
+        car.getStaus(now_datatime, reqday, SELECT_TYPE, acn)
         
-    print(str(now_datatime)+"评估匹配结束")
+    print(str(now_datatime)+"A3C匹配结束")
     now_datatime += dati.timedelta(minutes=1)
 
 con.close()
@@ -43,20 +45,27 @@ print("共花费%s秒" % str((END_T-START_T).seconds))
 mon_plt = []
 for car in car_all:
     mon_plt.append(car.income)
-print("Evaluate:",np.mean(mon_plt))
+print("ACN:",np.mean(mon_plt))
 print("已完成订单数:", len(reqday.over_req))
+
 
 import pandas as pd
 columns = ["income"]
 test=pd.DataFrame(columns=columns, data=mon_plt)
-test.to_csv('Evaluate.csv', encoding='utf-8')
+test.to_csv('ACN.csv', encoding='utf-8')
 
 x = range(0,len(mon_plt),1)
 plt.figure(figsize=(8,6), dpi=80)
-plt.title("Evaluate")
-plt.xlabel("train(reward)")
-plt.ylabel("n") 
+plt.title("ACN")
+plt.subplot(1,2,1)
 plt.plot(x, mon_plt, label="precision")
+plt.xlabel("train(reward)")
+plt.ylabel("money")
+plt.subplot(1,2,2)
+plt.plot(range(0,len(dqn.loss_list),1), dqn.loss_list, label="loss")
+plt.xlabel("n")
+plt.ylabel("value") 
+
 plt.legend(loc='upper right')
 # plt.ylim(0,100)
 plt.show()

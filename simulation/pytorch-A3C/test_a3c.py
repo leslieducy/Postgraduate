@@ -30,8 +30,7 @@ MAX_EP = 300
 N_S = 1049
 N_A = 8
 DATA = [2013,5,4]
-FINISHED_LIST = []
-LOSS_LIST = []
+
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -84,7 +83,8 @@ class Worker(mp.Process):
         self.g_ep, self.g_ep_r, self.res_queue = global_ep, global_ep_r, res_queue
         self.gnet, self.opt = gnet, opt
         self.lnet = Net(N_S, N_A)           # local network
-        self.ROAD_AREA = self.init_area()
+        self.ROAD_AREA = []
+        self.FINISHED_LIST = []
     def choose_action(self, x, time, con):
         end_road_list = self.query_has_action(x, time,con)
         if end_road_list is None or len(end_road_list) == 0:
@@ -150,7 +150,8 @@ class Worker(mp.Process):
             cursor.close()  #关闭游标
             end_road_list = []
             for item in data:
-                if item[0] not in FINISHED_LIST:
+                # print(self.FINISHED_LIST)
+                if item[0] not in self.FINISHED_LIST:
                     # id，end_road，money
                     end_road_list.append((item[0],item[10],item[2]))
                     
@@ -167,10 +168,18 @@ class Worker(mp.Process):
         cursor.close()  #关闭游标
         if data:
             s_no, exp_time, rm = data[10], data[4], data[2]
+            # time_list = exp_time.split(':')
+            # time_list = [int(x) for x in time_list]
+            # if time_list == time:
+            #     time_list[1] = time_list[1] + 1
+            #     time_list = [str(x) for x in time_list]
+            #     exp_time = ':'.join(time_list)
+            # print(exp_time)
             s_ = [-1] * N_S
             s_[s_no - 1] = 1
             r = 0
-            end_road_list = self.query_has_action(s_,time,con)
+            end_road_list = self.query_has_action(s_, time ,con)
+            # 一天结束
             if end_road_list is None:
                 return None, rm, exp_time,r
             # 当前收益越大，reward越大
@@ -190,13 +199,11 @@ class Worker(mp.Process):
                 continue
             state_list[item[1]-1] = 0
         return state_list,time
-    def init_area(self):
-        con = cx.connect('test', 'herron', '127.0.0.1:1521/TestDatabase')  #创建连接
+    def init_area(self, con):
         cursor = con.cursor()       #创建游标
         cursor.execute("select distinct ROAD_ID,CLUSTER_TYPE from ROAD_PROP t ")  #执行sql语句
         data_list = cursor.fetchall()
         cursor.close()  #关闭游标
-        con.close()
         ret_list = [0]*1050
         for (road_id,cluster_type) in data_list:
             ret_list[road_id] = cluster_type
@@ -204,8 +211,9 @@ class Worker(mp.Process):
     def run(self):
         total_step = 1
         con = cx.connect('test', 'herron', '127.0.0.1:1521/TestDatabase')  #创建连接
+        self.ROAD_AREA = self.init_area(con)
         while self.g_ep.value < MAX_EP:
-            FINISHED_LIST = []
+            self.FINISHED_LIST = []
             s, time = self.get_init_state(con)
             money = 0.
             buffer_s, buffer_a, buffer_r = [], [], []
@@ -216,7 +224,7 @@ class Worker(mp.Process):
                 # 没有找到动作请求, 进入下回合
                 if q_a is None:
                     break
-                FINISHED_LIST.append(q_a[0])
+                self.FINISHED_LIST.append(q_a[0])
                 # 得到环境反馈
                 area = self.ROAD_AREA[q_a[1]]
                 s_, rm, exp_time,r = self.get_step_state(q_a[0], time, con)
@@ -226,11 +234,11 @@ class Worker(mp.Process):
                 # 没有找到下一个动作, 进入下回合
                 if s_ is None:
                     done = True
-                    # break
-                # print(s_,r)
+                # else:
+                    # print(s_,r)
                 exp_time = exp_time.split(':')
                 time = [int(x) for x in exp_time]
-                # ep_r += r
+                    # ep_r += r
                 buffer_a.append(area)
                 buffer_s.append(s)
                 buffer_r.append(r)
@@ -271,6 +279,7 @@ if __name__ == "__main__":
             break
     [w.join() for w in workers]
     # con.close()     #关闭数据库连接
+    print("A3C平均值：",np.mean(res))
     import matplotlib.pyplot as plt
     plt.plot(res)
     plt.ylabel('Moving average ep reward')
