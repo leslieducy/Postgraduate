@@ -1,7 +1,7 @@
 from models import area, sensor
 import matplotlib.pyplot as plt
 
-radius_list = list(range(10, 250, 10))
+radius_list = list(range(10, 250, 1))
 # angle_list = range(0, -180, -5)
 # RADIUS =  100
 ANGLE = -30

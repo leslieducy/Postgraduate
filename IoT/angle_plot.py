@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 # radius_list = range(50, 500, 10)
 # ANGLE = -60
-angle_list = list(range(-5, -60, -5))
+angle_list = list(range(-5, -60, -1))
 RADIUS =  100
 
 result_list = []
