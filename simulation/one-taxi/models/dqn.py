@@ -4,33 +4,30 @@ import torch.nn.functional as F
 import numpy as np
 import datetime
 # 超参数
-BATCH_SIZE = 512
-LR = 0.05                   # learning rate
-EPSILON = 0.9               # 最优选择动作百分比
-GAMMA = 0.95                # 奖励递减参数
+BATCH_SIZE = 32
+LR = 0.001                   # learning rate
+EPSILON = 0.99               # 最优选择动作百分比
+GAMMA = 0.9                # 奖励递减参数
 TARGET_REPLACE_ITER = 100   # Q 现实网络的更新频率
 MEMORY_CAPACITY = 1000      # 记忆库大小
-N_ACTIONS = 8  # 动作总数
+N_ACTIONS = 1049  # 动作总数
 N_STATES = 1049   # 状态总数
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-# 训练次数
-train_n = 300
 
 class Net(nn.Module):
     def __init__(self):
         super(Net,self).__init__()
         self.fc1 = nn.Sequential(
-            nn.Linear(N_STATES, 100),
-            nn.ReLU(),
-            nn.Linear(100, 500),
-            nn.ReLU(),
+            nn.Linear(N_STATES, 500),
+            nn.Sigmoid(),
             nn.Linear(500, 100),
+            nn.Sigmoid(),
         )
+        # self.fc1.weight.data.normal_(0, 0.1)
         self.out = nn.Linear(100, N_ACTIONS)
         self.out.weight.data.normal_(0, 0.1)
     def forward(self, x):
         x = self.fc1(x)
-        x = F.relu(x)
         action_value = self.out(x)
         return action_value
 

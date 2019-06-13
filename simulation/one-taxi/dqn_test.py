@@ -44,7 +44,7 @@ if __name__ == "__main__":
     dqn_plot = []
     # 初始化DQN神经网络
     dqn_obj = dqn.DQN()
-    for i_episode in range(100):
+    for i_episode in range(500):
         aim_car,reqday_obj = simulate(dqn_obj)
         print(i_episode,"次实验结束。")
         car_plot.append(aim_car)

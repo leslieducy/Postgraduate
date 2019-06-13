@@ -38,7 +38,7 @@ if __name__ == "__main__":
     START_T = dati.datetime.now()
     car_plot = []
     reqday_plot = []
-    for i_episode in range(100):
+    for i_episode in range(3000):
         aim_car,reqday_obj = simulate()
         print(i_episode,"次实验结束。")
         car_plot.append(aim_car)
