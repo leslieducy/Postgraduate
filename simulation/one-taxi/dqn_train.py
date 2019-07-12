@@ -1,14 +1,14 @@
 from models import reqday, car
-import datetime as dati
+from modules import dqn
 from utils import result
+import datetime as dati
 import cx_Oracle as cx      #导入模块
 
-import matplotlib.pyplot as plt
 import numpy as np
 
-def simulate():
-    # 司机选择订单的属性（0-3）（随机，贪心，评估，dqn强化，A3C强化）
-    SELECT_TYPE = 0
+def simulate(dqn_obj):
+   # 司机选择订单的属性（0-3）（随机，贪心，评估，dqn强化，A3C强化）
+    SELECT_TYPE = 3
     con = cx.connect('test', 'herron', '127.0.0.1:1521/TestDatabase')  #创建连接
     # 选择一辆出租车获取其一星期的原始数据
     cursor = con.cursor()       #创建游标
@@ -25,9 +25,11 @@ def simulate():
         # 初始化时间状态及订单发布平台
         now_datatime = start_datatime
         reqday_obj = reqday.Reqday(start_datatime,con)
+
         # 时间开始循环，直至到了最后时间
         while now_datatime < end_datatime:
-            aim_car.getStaus(now_datatime, reqday_obj, SELECT_TYPE)
+            aim_car.getStaus(now_datatime, reqday_obj, SELECT_TYPE, dqn_obj)
+            # print(str(now_datatime)+" DQN匹配结束")
             now_datatime += dati.timedelta(minutes=1)
         aim_car_list.append(aim_car)
     con.close()
@@ -36,10 +38,12 @@ if __name__ == "__main__":
     # 计时
     START_T = dati.datetime.now()
     car_income_plot = []
-    car_wandering_plot = []
     reqday_plot = []
+    car_wandering_plot = []
+    # 初始化DQN神经网络
+    dqn_obj = dqn.DQN()
     for i_episode in range(100):
-        aim_car_list,reqday_obj = simulate()
+        aim_car_list,reqday_obj = simulate(dqn_obj)
         print(i_episode,"次实验结束。")
         car_income_plot.append([aim_car.income for aim_car in aim_car_list])
         car_wandering_plot.append([aim_car.wandering_all+aim_car.wandering_num for aim_car in aim_car_list])
@@ -51,11 +55,11 @@ if __name__ == "__main__":
     # 所有司机收入图
     mon_plt = [np.mean(car_income) for car_income in car_income_plot]
     wandering_plt = [np.mean(car_wandering) for car_wandering in car_wandering_plot]
-    print("随机:",np.mean(mon_plt))
+    print("DQN:",np.mean(mon_plt))
     print("司机空车时间平均数:", np.mean(wandering_plt))
     print("完成订单平均数:", np.mean(reqday_plot))
-
-    resd = result.ResultDeal("Random")
+    resd = result.ResultDeal("DQN")
     resd.plotIncome(mon_plt)
     resd.plotWandering(wandering_plt)
     resd.saveCSV({"money":mon_plt, "wandering_time":wandering_plt})
+

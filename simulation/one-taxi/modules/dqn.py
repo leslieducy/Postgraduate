@@ -6,8 +6,8 @@ import datetime
 # 超参数
 BATCH_SIZE = 32
 LR = 0.001                   # learning rate
-EPSILON = 0.99               # 最优选择动作百分比
-GAMMA = 0.9                # 奖励递减参数
+EPSILON = 0.9               # 最优选择动作百分比
+GAMMA = 0.8                # 奖励递减参数
 TARGET_REPLACE_ITER = 100   # Q 现实网络的更新频率
 MEMORY_CAPACITY = 1000      # 记忆库大小
 N_ACTIONS = 1049  # 动作总数
@@ -17,18 +17,26 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 class Net(nn.Module):
     def __init__(self):
         super(Net,self).__init__()
-        self.fc1 = nn.Sequential(
-            nn.Linear(N_STATES, 500),
-            nn.Sigmoid(),
-            nn.Linear(500, 100),
-            nn.Sigmoid(),
-        )
-        # self.fc1.weight.data.normal_(0, 0.1)
-        self.out = nn.Linear(100, N_ACTIONS)
-        self.out.weight.data.normal_(0, 0.1)
+        self.fc1 = nn.Linear(N_STATES, 500)
+        self.dropout = nn.Dropout(p=0.3)
+        # self.fc2 = nn.Linear(100, 100)
+        # self.dropout = nn.Dropout(p=0.5)
+        self.out = nn.Linear(500, N_ACTIONS)
+        # self.out.weight.data.normal_(0, 0.1)
+        for layer in [self.fc1, self.out]:
+            nn.init.normal_(layer.weight, mean=0., std=0.1)
+            nn.init.constant_(layer.bias, 0.)
+
     def forward(self, x):
         x = self.fc1(x)
-        action_value = self.out(x)
+        x = torch.sigmoid(x)
+        x = self.dropout(x)
+        # x = self.fc2(x)
+        # x = torch.sigmoid(x)
+        # x = F.sigmoid(x)
+        x = self.out(x)
+        action_value = torch.sigmoid(x)
+        x = torch.sigmoid(x)
         return action_value
 
 class DQN(object):
@@ -103,6 +111,7 @@ class DQN(object):
         b_r = torch.FloatTensor(b_memory[:, N_STATES+1:N_STATES+2]).to(device)
         b_s_ = torch.FloatTensor(b_memory[:, -N_STATES:]).to(device)
         # 针对做过的动作b_a, 来选 q_eval 的值, (q_eval 原本有所有动作的值)
+        # print(self.eval_net(b_s).shape,b_a.shape)
         q_eval = self.eval_net(b_s).gather(1, b_a).to(device)  # shape (batch, 1)
         q_next = self.target_net(b_s_).detach().to(device)     # detach from graph, don't backpropagate
         q_target = b_r + GAMMA * q_next.max(1)[0].view(BATCH_SIZE, 1).to(device)   # shape (batch, 1)
@@ -113,35 +122,66 @@ class DQN(object):
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-
     # 当前状态、待选订单、路段-区域列表
     def choose_action(self, status, req_list, road_area):
-        area_useful = []
+        # 可选择的订单中包含的路段列表
+        road_useful = []
         for req in req_list:
-            if road_area[req[10] - 1] not in area_useful:
-                area_useful.append(road_area[req[10] - 1])
-        state_list = [-1 for i in range(N_STATES)]
+            if req[10] - 1 not in road_useful:
+                road_useful.append(req[10] - 1)
         # 列表索引 = 路段号 - 1（road_area与state_list设计相同）
+        state_list = [-1 for i in range(N_STATES)]
         state_list[status-1] = 1
         x = torch.unsqueeze(torch.FloatTensor(state_list), 0).to(device)
         # EPSILON的可能是强化选择，其他可能是随机
         if np.random.uniform() < EPSILON:
             actions_value = self.eval_net.forward(x).cpu().data.numpy()[0]
             # 求网络输出最大概率的那项
-            sel_area_pos, max_prob = None, actions_value[area_useful[0]]-1
-            for item in area_useful:
+            sel_area_pos, max_prob = None, actions_value[road_useful[0]]-1
+            for item in road_useful:
                 if actions_value[item] > max_prob:
                     sel_area_pos = item
                     max_prob = actions_value[item]
-            # 记录路段号的数组
-            road_all = [i+1 for i,v in enumerate(road_area) if v==sel_area_pos]
+            # 从所有订单中选出属于网络输出的路段号的订单，从中选择金额最大的订单
             max_action = req_list[0]
-            for road_item in road_all:
-                for item in req_list:
-                    if item[10] == road_item and item[2] > max_action[2]:
-                        max_action = item
+            for item in req_list:
+                if item[10] == sel_area_pos and item[2] > max_action[2]:
+                    max_action = item
             action = max_action
         else:
             rand = np.random.randint(0, len(req_list))
             action = req_list[rand]
         return action
+
+
+    # # 当前状态、待选订单、路段-区域列表
+    # def choose_action(self, status, req_list, road_area):
+    #     area_useful = []
+    #     for req in req_list:
+    #         if road_area[req[10] - 1] not in area_useful:
+    #             area_useful.append(road_area[req[10] - 1])
+    #     state_list = [-1 for i in range(N_STATES)]
+    #     # 列表索引 = 路段号 - 1（road_area与state_list设计相同）
+    #     state_list[status-1] = 1
+    #     x = torch.unsqueeze(torch.FloatTensor(state_list), 0).to(device)
+    #     # EPSILON的可能是强化选择，其他可能是随机
+    #     if np.random.uniform() < EPSILON:
+    #         actions_value = self.eval_net.forward(x).cpu().data.numpy()[0]
+    #         # 求网络输出最大概率的那项
+    #         sel_area_pos, max_prob = None, actions_value[area_useful[0]]-1
+    #         for item in area_useful:
+    #             if actions_value[item] > max_prob:
+    #                 sel_area_pos = item
+    #                 max_prob = actions_value[item]
+    #         # 记录路段号的数组
+    #         road_all = [i+1 for i,v in enumerate(road_area) if v==sel_area_pos]
+    #         max_action = req_list[0]
+    #         for road_item in road_all:
+    #             for item in req_list:
+    #                 if item[10] == road_item and item[2] > max_action[2]:
+    #                     max_action = item
+    #         action = max_action
+    #     else:
+    #         rand = np.random.randint(0, len(req_list))
+    #         action = req_list[rand]
+    #     return action

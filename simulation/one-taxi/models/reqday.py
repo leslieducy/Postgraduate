@@ -30,9 +30,27 @@ class Reqday(object):
         nei_road_param = ','.join(":%d" % i for i,_ in enumerate(neigh_road_list))
         sql = ("select * from TEM_REQ t where on_time > '"+ before_time.strftime("%H:%M:%S") 
             + "' and on_time < '"+ now_time.strftime("%H:%M:%S")
-            +"' and day_no = '" + now_time.strftime("%Y-%m-%d") 
+            +"' and day_no = '" + now_time.strftime("%Y-%m-%d")
             +"' and start_road in ('',%s)" % nei_road_param)
         cursor.execute(sql, neigh_road_list)  #执行sql语句
+        req_all = cursor.fetchall()
+        cursor.close()
+        ret_req_all = []
+        for req in req_all:
+            if req[0] not in self.over_req:
+                ret_req_all.append(req)
+        # print("req_all",req_all)
+        return ret_req_all
+
+    def getTimeReq(self, datatime):
+        now_time = datatime
+        before_time = now_time - dati.timedelta(minutes=TIME_INTERVAL)
+        cursor = self.dbcon.cursor()       #创建游标
+        
+        sql = ("select * from TEM_REQ t where on_time > '"+ before_time.strftime("%H:%M:%S") 
+            + "' and on_time < '"+ now_time.strftime("%H:%M:%S")
+            +"' and day_no = '%s'" % now_time.strftime("%Y-%m-%d"))
+        cursor.execute(sql)  #执行sql语句
         req_all = cursor.fetchall()
         cursor.close()
         ret_req_all = []

@@ -1,5 +1,5 @@
 from models import reqday, car
-from modules import dqn
+from modules import dcqn
 from utils import result
 import datetime as dati
 import cx_Oracle as cx      #导入模块
@@ -10,7 +10,7 @@ import numpy as np
 
 def simulate(dqn_obj, taxi_sql):
    # 司机选择订单的属性（0-3）（随机，贪心，评估，dqn强化，A3C强化）
-    SELECT_TYPE = 3
+    SELECT_TYPE = 5
     con = cx.connect('test', 'herron', '127.0.0.1:1521/TestDatabase')  #创建连接
     # 选择一辆出租车获取其一星期的原始数据
     cursor = con.cursor()       #创建游标
@@ -45,11 +45,11 @@ if __name__ == "__main__":
     reqday_plot = []
     car_wandering_plot = []
     # 初始化DQN神经网络
-    dqn_obj = dqn.DQN()
+    dqn_obj = dcqn.DCQN()
     plt.ion()
     plt.figure(1)
     # 训练
-    train_num = 20
+    train_num = 30
     ion_plot = []
     for i_episode in range(train_num):
         taxi_sql = "select * from taximan t where TAXIMAN_ID = '807' and DAY_NO in ('2013-03-01','2013-03-02','2013-03-03','2013-03-04','2013-03-05','2013-03-06','2013-03-07') order by DAY_NO"
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     # [np.mean(car_income) for car_income in car_income_plot]
     mon_plt = np.array(car_income_plot).mean(axis=0)
     wandering_plt = np.array(car_wandering_plot).mean(axis=0)
-    result_title = "DQNTrain"+str(train_num)
+    result_title = "DCQNTrain"+str(train_num)
     print(result_title,np.mean(mon_plt))
     print("司机空车时间平均数:", np.mean(wandering_plt))
     print("完成订单平均数:", np.mean(reqday_plot))
@@ -85,3 +85,4 @@ if __name__ == "__main__":
     resd.plotIncome(mon_plt)
     resd.plotWandering(wandering_plt)
     resd.saveCSV({"money":mon_plt, "wandering_time":wandering_plt, "reqday_plot":reqday_plot})
+

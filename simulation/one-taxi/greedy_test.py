@@ -8,7 +8,7 @@ import numpy as np
 
 def simulate():
     # 司机选择订单的属性（0-3）（随机，贪心，评估，dqn强化，A3C强化）
-    SELECT_TYPE = 0
+    SELECT_TYPE = 1
     con = cx.connect('test', 'herron', '127.0.0.1:1521/TestDatabase')  #创建连接
     # 选择一辆出租车获取其一星期的原始数据
     cursor = con.cursor()       #创建游标
@@ -51,11 +51,11 @@ if __name__ == "__main__":
     # 所有司机收入图
     mon_plt = [np.mean(car_income) for car_income in car_income_plot]
     wandering_plt = [np.mean(car_wandering) for car_wandering in car_wandering_plot]
-    print("随机:",np.mean(mon_plt))
+    print("Greedy:",np.mean(mon_plt))
     print("司机空车时间平均数:", np.mean(wandering_plt))
     print("完成订单平均数:", np.mean(reqday_plot))
 
-    resd = result.ResultDeal("Random")
+    resd = result.ResultDeal("Greedy")
     resd.plotIncome(mon_plt)
     resd.plotWandering(wandering_plt)
     resd.saveCSV({"money":mon_plt, "wandering_time":wandering_plt})
