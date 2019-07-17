@@ -121,6 +121,8 @@ class Area():
                     right = x
         # 找到能移动旋转的传感器才跳出循环，success_tag是判断是否成功修复
         success_tag = False
+        bss_sel = None
+        self.invalid_ss_list =[]
         while(len(self.backup_ss_list) != len(self.invalid_ss_list)):
             # 距离左边最近的备用传感器
             min_dis_left, left_ss = math.pow(self.backup_ss_list[0].x - left, 2) + math.pow(self.backup_ss_list[0].y - self.guard_line, 2), self.backup_ss_list[0]
@@ -172,12 +174,12 @@ class Area():
             # 已寻找到合适的传感器，则可直接跳出循环
             success_tag = True
             break
-        
-        self.backup_ss_list.remove(bss_sel)
-        self.ss_list.append(bss_sel)
-        for (x, y) in bss_sel.coverSize():
-            if x > 0 and x < self.width and y < self.height and y > 0:
-                self.status_list[y][x] += 1
+        if bss_sel:
+            self.backup_ss_list.remove(bss_sel)
+            self.ss_list.append(bss_sel)
+            for (x, y) in bss_sel.coverSize():
+                if x > 0 and x < self.width and y < self.height and y > 0:
+                    self.status_list[y][x] += 1
         return success_tag
 
         

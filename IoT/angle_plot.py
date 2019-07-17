@@ -8,7 +8,7 @@ RADIUS =  100
 
 result_list = []
 # 实验次数 ，用来计算修复的成功率 p = 成功修复次数/总次数。 
-test_num = 100
+test_num = 20
 
 for ANGLE in angle_list:
     success_num = 0
@@ -18,14 +18,17 @@ for ANGLE in angle_list:
         area_obj.backupRandomSensor()
         area_obj.buildBarrier()
 
-        day_num = 5
+        day_num = 20
         success_tag = True
         for dn in range(day_num):
             # 存在传感器能量耗尽
             if area_obj.dayByDay() is False:
                 print("检测到漏洞！")
                 success_tag = area_obj.repairBarrier()
-                break
+                # 只要有一个不能修复则直接，修复失败
+                if success_tag is False:
+                    break
+                # break
         if success_tag:
             success_num += 1
     # 计算成功率

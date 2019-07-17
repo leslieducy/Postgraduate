@@ -1,7 +1,7 @@
 from models import area, sensor
 import matplotlib.pyplot as plt
 
-radius_list = list(range(10, 250, 1))
+radius_list = list(range(10, 250, 10))
 # angle_list = range(0, -180, -5)
 # RADIUS =  100
 ANGLE = -30
@@ -18,14 +18,16 @@ for RADIUS in radius_list:
         area_obj.backupRandomSensor()
         area_obj.buildBarrier()
 
-        day_num = 5
+        day_num = 20
         success_tag = True
         for dn in range(day_num):
             # 存在传感器能量耗尽
             if area_obj.dayByDay() is False:
                 print("检测到漏洞！")
                 success_tag = area_obj.repairBarrier()
-                break
+                # 只要有一个不能修复则直接，修复失败
+                if success_tag is False:
+                    break
         if success_tag:
             success_num += 1
     # 计算成功率
