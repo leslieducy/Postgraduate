@@ -1,7 +1,15 @@
 import pandas as pd
 import numpy as np
 
+import random
 
+import torch
+import torch.nn as nn
+import torch.utils.data as Data
+from torch import optim
+import torch.nn.functional as F
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # 读取汉字编码表
 def get_chinese_codes():
     words_list = pd.read_csv('wordsno.csv',index_col=0,low_memory=False,encoding='utf-8')
@@ -14,8 +22,9 @@ def load_data(dataset_path='./couplet/train/'):
     chinese_codes = get_chinese_codes()
     in_num_txt = in_txt.applymap(lambda x:chinese_codes.index(x) if not pd.isna(x) else x)
     out_num_txt = out_txt.applymap(lambda x:chinese_codes.index(x) if not pd.isna(x) else x)
-    features = in_num_txt.values.astype(np.float32)
-    labels = out_num_txt.values.astype(np.float32)
+    features = in_num_txt.values
+    labels = out_num_txt.values
+    print("vector_len:", features.shape[0])
     return features, labels
     # for item in range(0,400):
     #     img = Image.open(dataset_path+str(item+1)+'.jpg')
@@ -35,93 +44,65 @@ def load_test(dataset_path='./test_data/'):
         img_ndarray = np.asarray(img, dtype='float32') / 256
         features.append(img_ndarray)
     return np.array(features)
+
+
+
+class AutoEncoder(nn.Module):
+    def __init__(self):
+        super(AutoEncoder, self).__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(28*28, 64),
+            # (-1,1)
+            nn.Tanh(),
+            nn.Linear(64, 32),
+            nn.Tanh(),
+            nn.Linear(32, 12),
+            nn.Tanh(),
+            nn.Linear(12, 3),
+        )
+        self.decoder = nn.Sequential(
+            nn.Linear(3, 12),
+            nn.Tanh(),
+            nn.Linear(12, 32),
+            nn.Tanh(),
+            nn.Linear(32, 64),
+            nn.Tanh(),
+            nn.Linear(64, 28*28),
+            # (0,1)
+            nn.Sigmoid(),
+        )
+       
+
+    def forward(self, x):
+        encoded = self.encoder(x)
+        decoded = self.decoder(encoded)
+        return encoded, decoded
+
+
+
 if __name__ == "__main__":
     # 加载数据
     features, labels = load_data(dataset_path='./couplet/train/')
+    train_data = Data.TensorDataset(features, labels)
+    train_loader = Data.DataLoader(dataset=train_data, batch_size=BATCH_SIZE, shuffle=True)
 
-
-# 定义神经网络
-class EncoderRNN(nn.Module):
-    def __init__(self, input_size, hidden_size):
-        super(EncoderRNN, self).__init__()
-        self.hidden_size = hidden_size
-
-        self.embedding = nn.Embedding(input_size, hidden_size)
-        self.gru = nn.GRU(hidden_size, hidden_size)
-
-    def forward(self, input, hidden):
-        embedded = self.embedding(input).view(1, 1, -1)
-        output = embedded
-        output, hidden = self.gru(output, hidden)
-        return output, hidden
-
-    def initHidden(self):
-        return torch.zeros(1, 1, self.hidden_size, device=device)
-
-class DecoderRNN(nn.Module):
-    def __init__(self, hidden_size, output_size):
-        super(DecoderRNN, self).__init__()
-        self.hidden_size = hidden_size
-
-        self.embedding = nn.Embedding(output_size, hidden_size)
-        self.gru = nn.GRU(hidden_size, hidden_size)
-        self.out = nn.Linear(hidden_size, output_size)
-        self.softmax = nn.LogSoftmax(dim=1)
-
-    def forward(self, input, hidden):
-        output = self.embedding(input).view(1, 1, -1)
-        output = F.relu(output)
-        output, hidden = self.gru(output, hidden)
-        output = self.softmax(self.out(output[0]))
-        return output, hidden
-
-    def initHidden(self):
-        return torch.zeros(1, 1, self.hidden_size, device=device)
-
-class AttnDecoderRNN(nn.Module):
-    def __init__(self, hidden_size, output_size, dropout_p=0.1, max_length=MAX_LENGTH):
-        super(AttnDecoderRNN, self).__init__()
-        self.hidden_size = hidden_size
-        self.output_size = output_size
-        self.dropout_p = dropout_p
-        self.max_length = max_length
-
-        self.embedding = nn.Embedding(self.output_size, self.hidden_size)
-        self.attn = nn.Linear(self.hidden_size * 2, self.max_length)
-        self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
-        self.dropout = nn.Dropout(self.dropout_p)
-        self.gru = nn.GRU(self.hidden_size, self.hidden_size)
-        self.out = nn.Linear(self.hidden_size, self.output_size)
-
-    def forward(self, input, hidden, encoder_outputs):
-        embedded = self.embedding(input).view(1, 1, -1)
-        embedded = self.dropout(embedded)
-
-        attn_weights = F.softmax(
-            self.attn(torch.cat((embedded[0], hidden[0]), 1)), dim=1)
-        attn_applied = torch.bmm(attn_weights.unsqueeze(0),
-                                 encoder_outputs.unsqueeze(0))
-
-        output = torch.cat((embedded[0], attn_applied[0]), 1)
-        output = self.attn_combine(output).unsqueeze(0)
-
-        output = F.relu(output)
-        output, hidden = self.gru(output, hidden)
-
-        output = F.log_softmax(self.out(output[0]), dim=1)
-        return output, hidden, attn_weights
-
-    def initHidden(self):
-        return torch.zeros(1, 1, self.hidden_size, device=device)
-
-
-
-
-
-
-
-
-
+    autoencoder = AutoEncoder()
+    autoencoder = autoencoder.cuda()      # Moves all model parameters and buffers to the GPU.
+    optimizer = torch.optim.Adam(autoencoder.parameters(), lr=LR)
+    loss_func = nn.MSELoss()
+    
+    # training and testing
+    for epoch in range(EPOCH):
+        for step, (x, _) in enumerate(train_loader):   # gives batch data, normalize x when iterate train_loader
+            b_x = np.eye(in_num_txt.values.shape[0])[b_x].astype(np.float32).cuda().view(-1, 28*28)
+            b_y = np.eye(out_num_txt.values.shape[0])[b_y].astype(np.float32).cuda().view(-1, 28*28)
+            # b_x = x.cuda().view(-1, 28*28)
+            # b_y = x.cuda().view(-1, 28*28)
+            encoded, decoded = autoencoder(b_x)               # rnn output
+            loss = loss_func(decoded, b_y)   # cross entropy loss
+            optimizer.zero_grad()           # clear gradients for this training step
+            loss.backward()                 # backpropagation, compute gradients
+            optimizer.step()                # apply gradients
 
 
 # txt转存csv(额外工作)
