@@ -27,7 +27,8 @@ def simulate():
         car_data_list = cursor.fetchall()       #获取所有数据
         cursor.close()
         car_all = [car.Car(car_data,con) for car_data in car_data_list]
-        car_all = np.random.choice(car_all, 200)
+        # print('car_all',len(car_all))
+        car_all = np.random.choice(car_all, 750)
         # 保存3分钟内未完成的订单
 
         # 时间开始循环，直至下一天
@@ -75,9 +76,9 @@ def simulate():
                 # 对于刚完成订单的车
                 if car_obj.next_time == now_datatime:
                     car_obj.wandering_num += 1
-            print(str(now_datatime)+"集中派单结束")
             now_datatime += dati.timedelta(minutes=1)
 
+        print(str(now_datatime)+"集中派单结束")
         car_all_list.append(car_all)
         reqday_all_list.append(reqday_obj)
     con.close()
@@ -102,15 +103,20 @@ if __name__ == "__main__":
     print("共花费%s秒" % str((END_T-START_T).seconds))
 
     # 所有司机收入图
-    mon_plt = [np.mean(car_income) for car_income in car_income_plot]
-    wandering_plt = [np.mean(car_wandering) for car_wandering in car_wandering_plot]
+    car_income = np.array(car_income_plot)
+    car_wandering = np.array(car_wandering_plot)
+    mon_plt = car_income.mean(axis=0)
+    wandering_plt = car_wandering.mean(axis=0)
+    # mon_plt = [np.mean(car_income) for car_income in car_income_plot]
+    # wandering_plt = [np.mean(car_wandering) for car_wandering in car_wandering_plot]
     # print("AllCentralized:",np.mean(mon_plt))
     print("SatCentralized:",np.mean(mon_plt))
     print("司机空车时间平均数:", np.mean(wandering_plt))
     print("完成订单数:", np.mean(reqday_plot)/len(car_income_plot[0]))
 
-    # resd = result.ResultDeal("AllCentralized")
-    resd = result.ResultDeal("SatCentralized")
+    resd = result.ResultDeal("AllCentralized")
+    # resd = result.ResultDeal("SatCentralized")
     resd.plotIncome(mon_plt)
     resd.plotWandering(wandering_plt)
-    resd.saveCSV({"money":mon_plt, "wandering_time":wandering_plt, "reqday_plot":reqday_plot})
+    # resd.saveCSV({"money":mon_plt, "wandering_time":wandering_plt, "reqday_plot":reqday_plot})
+    resd.saveCSV({"money":mon_plt, "wandering_time":wandering_plt})
