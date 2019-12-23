@@ -4,3 +4,5 @@
 mnist/
 *.pkl.gz
 *-pro/
+*/FaceRecognition/test_data/*
+*/FaceRecognition/train_data/*
