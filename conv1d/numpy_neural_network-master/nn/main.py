@@ -68,6 +68,6 @@ def dnn_mnist():
 
 
 if __name__ == '__main__':
-    #dnn_mnist()
-    m = LinearRegression()
-    m.train()
+    dnn_mnist()
+    # m = LinearRegression()
+    # m.train()
