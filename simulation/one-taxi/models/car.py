@@ -41,6 +41,10 @@ class Car(object):
             self.acSelect(req_all, datatime, reqday, now_road, nn)
         elif sel_type == 5:
             self.dcqnSelect(req_all, datatime, reqday, now_road, nn)
+        elif sel_type == 6:
+            self.dlqnSelect(req_all, datatime, reqday, now_road, nn)
+        elif sel_type == 7:
+            self.ddlqnSelect(req_all, datatime, reqday, now_road, nn)
 
     # 随机选择:从当前路段周围的订单中随机选择
     def randomSelect(self, req_all, datatime, reqday, now_road):
@@ -143,7 +147,7 @@ class Car(object):
                 # 没有选择则重新选择
                 req = dqn.choose_action(self.next_road_id, req_all, road_area)
                 return
-
+            
             # 当前收益越大，reward越大
             r = req[2]
             # 存储当前路段号、订单所属区域、回报、下一个路段号
@@ -223,7 +227,88 @@ class Car(object):
             # 闲逛超过五分钟随机进入下一路段
             if self.wandering_num > 5:
                 self.next_road_id = now_road.getRandomNeighbor()
-        
+    
+    # dlqn强化学习
+    def dlqnSelect(self, req_all, datatime, reqday, now_road, dlqn):
+        # 判断是否有订单可选择,没有则游荡
+        if len(req_all) > 0:
+            # 根据强化学习,选择订单
+            # 传入路段号和时间，以便后续进行处理
+            req = dlqn.choose_action((self.next_road_id, datatime), req_all)
+            # 把搭载时间算入空驶时间中
+            if req[7] != now_road.id:
+                self.wandering_all += 1
+            # 当前收益越大，reward越大
+            r = req[2]
+            # 存储当前状态、订单目的路段、回报、下一个状态
+            dlqn.store_transition((self.next_road_id, datatime), req[10], r, (req[10], dati.datetime.strptime((req[1] + req[4]), '%Y-%m-%d%H:%M:%S')))
+            # rm = req[2]
+            # r = 1 if rm > 10000 else rm/10000
+            dlqn.learn()
+
+            self.accept_req(req, datatime)
+            # 累计闲逛时间
+            self.wandering_all += self.wandering_num
+            self.wandering_num = 0
+            reqday.overReq(req[0])
+        else:
+            self.wandering_num += 1
+            # 闲逛超过五分钟随机进入下一路段
+            if self.wandering_num > 5:
+                self.next_road_id = now_road.getRandomNeighbor()
+
+    # ddlqn强化学习
+    def ddlqnSelect(self, req_all, datatime, reqday, now_road, dlqn):
+        # 判断是否有订单可选择,没有则游荡
+        if len(req_all) > 0:
+            # 根据强化学习,返回各路段的Q值,再根据当前信息进行智能决策
+            # 传入路段号和时间，以便后续进行处理
+            actions_value = dlqn.choose_action((self.next_road_id, datatime), req_all)
+            # 智能决策：对所有订单进行选择（起始路段）
+
+            # 根据网络输出值大小对订单排序
+            req_list_sorted = sorted(req_all,key=lambda x:actions_value[x[10]-1],reverse=True)
+            # 找到所有最大值相同目的地(根据出发点分当前路段和领近路段)的订单，进行二次决策
+            all_max_req_nei = []
+            all_max_req_cur = []
+            same_road = req_list_sorted[0][10]
+            for req in req_list_sorted:
+                if req[10] == same_road:
+                    if req[7] == now_road.id:
+                        all_max_req_cur.append(req)
+                    else:
+                        all_max_req_nei.append(req)
+
+            # 先选出最近的，再选最大
+            all_max_req = all_max_req_cur if len(all_max_req_cur)>0 else all_max_req_nei
+            # 选出单价金额最大的
+            action = all_max_req[0]
+            max_price = all_max_req[0][2]
+            for max_req in all_max_req:
+                if max_req[2] > max_price:
+                    action = max_req
+            req = action
+            # 把搭载时间算入空驶时间中
+            if req[7] != now_road.id:
+                self.wandering_all += 1
+            r = req[2]
+            # 存储当前状态、订单目的路段、回报、下一个状态
+            dlqn.store_transition((self.next_road_id, datatime), req[10], r, (req[10], dati.datetime.strptime((req[1] + req[4]), '%Y-%m-%d%H:%M:%S')))
+            # rm = req[2]
+            # r = 1 if rm > 10000 else rm/10000
+            dlqn.learn()
+
+            self.accept_req(req, datatime)
+            # 累计闲逛时间
+            self.wandering_all += self.wandering_num
+            self.wandering_num = 0
+            reqday.overReq(req[0])
+        else:
+            self.wandering_num += 1
+            # 闲逛超过五分钟随机进入下一路段
+            if self.wandering_num > 5:
+                self.next_road_id = now_road.getRandomNeighbor()
+    
     def accept_req(self, req, datatime):
         # self.status = 1
         self.income += req[2]

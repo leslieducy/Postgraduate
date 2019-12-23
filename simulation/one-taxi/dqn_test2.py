@@ -58,9 +58,11 @@ if __name__ == "__main__":
     wandering_plt = np.array(car_wandering_plot).mean(axis=0)
     print("DQNweek:",np.mean(mon_plt))
     print("司机空车时间平均数:", np.mean(wandering_plt))
-    print("完成订单平均数:", np.mean(reqday_plot))
+    # print("完成订单平均数:", np.mean(reqday_plot))
+    print("完成订单数:", reqday_plot)
     resd = result.ResultDeal("DQNweek")
     resd.plotIncome(mon_plt)
     resd.plotWandering(wandering_plt)
+    # resd.saveCSV({"money":mon_plt, "wandering_time":wandering_plt, "reqday_plot":reqday_plot})
     resd.saveCSV({"money":mon_plt, "wandering_time":wandering_plt})
 
