@@ -6,6 +6,7 @@ from keras.layers import Embedding
 from keras.layers import Conv1D,GlobalAveragePooling1D
 from keras.datasets import imdb
 from sklearn.metrics import accuracy_score,classification_report
+from test import MyLayer
     
 # 参数 最大特征数6000 单个句子最大长度400
 max_features = 6000
@@ -48,7 +49,7 @@ epochs = 3
 model = Sequential()
 model.add(Embedding(max_features,embedding_dims,input_length=max_length))
 model.add(Dropout(0.2))
-model.add(Conv1D(num_kernels,kernel_size,padding='valid',activation='relu',strides=1))
+model.add(MyLayer(num_kernels,kernel_size,padding='same',activation='relu',strides=1))
 model.add(GlobalAveragePooling1D())
 model.add(Dense(hidden_dims))
 model.add(Dropout(0.5))

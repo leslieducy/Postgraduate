@@ -71,18 +71,15 @@ def conv_backward(next_dz, K, z, padding=0, strides=1):
     # 交换C,D为D,C；D变为输入通道数了，C变为输出通道数了
     swap_flip_K = np.swapaxes(flip_K, 0, 1)
     # 增加高度和宽度0填充
-    ppadding_next_dz = np.lib.pad(padding_next_dz, ((0, 0), (0, 0), (k1 - 1, k1 - 1), (k2 - 1, k2 - 1)), 'constant', constant_values=0)
-    dz = _single_channel_conv(z, K, b=0, padding=0, strides=(1, 1))
+    # ppadding_next_dz = np.lib.pad(padding_next_dz, ((0, 0), (0, 0), (k1 - 1, k1 - 1), (k2 - 1, k2 - 1)), 'constant', constant_values=0)
+    dz = _single_channel_conv(padding_next_dz.astype(np.float64), flip_K, b=0, padding=0, strides=(1, 1))
  
     # 求卷积和的梯度dK
     swap_z = np.swapaxes(z, 0, 1)  # 变为(C,N,H,W)与
     dK = _single_channel_conv(swap_z.astype(np.float64), padding_next_dz.astype(np.float64), np.zeros((D,), dtype=np.float64))
 
     # 偏置的梯度
-    db = np.sum(np.sum(np.sum(next_dz, axis=-1), axis=-1), axis=0)  # 在高度、宽度上相加；批量大小上相加
-
-    # 把padding减掉
-    dz = _remove_padding(dz, padding)  # dz[:, :, padding[0]:-padding[0], padding[1]:-padding[1]]
+    db = np.sum(np.sum(next_dz, axis=-1), axis=0)  # 在高度、宽度上相加；批量大小上相加
 
     return dK / N, db / N, dz
 
@@ -90,7 +87,7 @@ def conv_backward(next_dz, K, z, padding=0, strides=1):
 
 
 
-def conv_backward(next_dz, K, z, padding=(0, 0), strides=(1, 1)):
+def conv1d_backward(next_dz, K, z, padding=(0, 0), strides=(1, 1)):
     """
     多通道卷积层的反向过程
     :param next_dz: 卷积输出层的梯度,(N,D,H,W),H,W为卷积输出层的高度和宽度
@@ -337,18 +334,13 @@ def main():
     # assert _single_channel_conv(z, k, strides=(2, 1), padding=(1, 1)).shape == (3, 5)
     print(_single_channel_conv(z, k)) 
 
-    dz = np.ones((1, 1, 3, 3))
-    assert _insert_zeros(dz, (1, 1)).shape == (1, 1, 3, 3)
-    print(_insert_zeros(dz, (3, 2)))
-    assert _insert_zeros(dz, (1, 2)).shape == (1, 1, 3, 5)
-    assert _insert_zeros(dz, (2, 2)).shape == (1, 1, 5, 5)
-    assert _insert_zeros(dz, (2, 4)).shape == (1, 1, 5, 9)
-
-    z = np.ones((8, 16, 5, 5))
-    k = np.ones((16, 32, 3, 3))
+    z = np.ones((8, 16, 5))
+    k = np.ones((16, 32, 3))
+    dz = np.ones((8, 16, 5))
     b = np.ones((32))
-    assert conv_forward_bak(z, k, b).shape == (8, 32, 3, 3)
-    print(conv_forward_bak(z, k, b)[0, 0])
+    dK, db, dz = conv_backward(dz, k, z)
+    assert z.shape == (8, 32, 5)
+    print(conv_backward(z, k, b)[0, 0])
 
     print(np.argmax(np.array([[1, 2], [3, 4]])))
 
