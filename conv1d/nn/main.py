@@ -7,9 +7,9 @@ Created on 2018/9/01 15:03
 测试案例
 """
 import numpy as np
-from dnn import Mnist, LinearRegression
+from nn.dnn import Mnist, LinearRegression
 
-from load_mnist import load_mnist_datasets
+from nn.load_mnist import load_mnist_datasets
 import utils
 
 
@@ -68,6 +68,6 @@ def dnn_mnist():
 
 
 if __name__ == '__main__':
-    dnn_mnist()
-    # m = LinearRegression()
-    # m.train()
+    #dnn_mnist()
+    m = LinearRegression()
+    m.train()

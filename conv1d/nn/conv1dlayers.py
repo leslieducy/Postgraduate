@@ -7,9 +7,6 @@ Created on 2018/8/19 15:03
 定义网络层
 """
 import numpy as np
-import pyximport
-pyximport.install()
-# from nn.clayers import conv_forward_bak
 
 
 def fc_forward(z, W, b):
@@ -37,88 +34,60 @@ def fc_backward(next_dz, W, z):
     db = np.sum(next_dz, axis=0)  # 当前层偏置的梯度, N个样本的梯度求和
     return dw / N, db / N, dz
 
-
-def _single_channel_conv(z, K, b=0, padding=(0, 0), strides=(1, 1)):
+def _single_channel_conv(z, K, b=0, padding=0, strides=(1, 1)):
     """
-    当通道卷积操作
-    :param z: 卷积层矩阵
-    :param K: 卷积核
+    单通道一维卷积操作
+    :param z: 卷积层向量
+    :param K: 卷积核向量
     :param b: 偏置
     :param padding: padding
     :param strides: 步长
     :return: 卷积结果
     """
-    padding_z = np.lib.pad(z, ((padding[0], padding[0]), (padding[1], padding[1])), 'constant', constant_values=0)
-    height, width = padding_z.shape
-    k1, k2 = K.shape
-    assert (height - k1) % strides[0] == 0, '步长不为1时，步长必须刚好能够被整除'
-    assert (width - k2) % strides[1] == 0, '步长不为1时，步长必须刚好能够被整除'
-    conv_z = np.zeros((1 + (height - k1) // strides[0], 1 + (width - k2) // strides[1]))
-    for h in np.arange(height - k1 + 1)[::strides[0]]:
-        for w in np.arange(width - k2 + 1)[::strides[1]]:
-            conv_z[h // strides[0], w // strides[1]] = np.sum(padding_z[h:h + k1, w:w + k2] * K)
-    return conv_z + b
-
-
-def _remove_padding(z, padding):
-    """
-    移除padding
-    :param z: (N,C,H,W)
-    :param paddings: (p1,p2)
-    :return:
-    """
-    if padding[0] > 0 and padding[1] > 0:
-        return z[:, :, padding[0]:-padding[0], padding[1]:-padding[1]]
-    elif padding[0] > 0:
-        return z[:, :, padding[0]:-padding[0], :]
-    elif padding[1] > 0:
-        return z[:, :, :, padding[1]:-padding[1]]
-    else:
-        return z
-
-
-def conv_forward_bak(z, K, b, padding=(0, 0), strides=(1, 1)):
-    """
-    多通道卷积前向过程
-    :param z: 卷积层矩阵,形状(N,C,H,W)，N为batch_size，C为通道数
-    :param K: 卷积核,形状(C,D,k1,k2), C为输入通道数，D为输出通道数
-    :param b: 偏置,形状(D,)
-    :param padding: padding
-    :param strides: 步长
-    :return: 卷积结果
-    """
-    padding_z = np.lib.pad(z, ((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), 'constant', constant_values=0)
-    N, _, height, width = padding_z.shape
-    C, D, k1, k2 = K.shape
-    assert (height - k1) % strides[0] == 0, '步长不为1时，步长必须刚好能够被整除'
-    assert (width - k2) % strides[1] == 0, '步长不为1时，步长必须刚好能够被整除'
-    conv_z = np.zeros((N, D, 1 + (height - k1) // strides[0], 1 + (width - k2) // strides[1]))
-    for n in np.arange(N):
-        for d in np.arange(D):
-            for h in np.arange(height - k1 + 1)[::strides[0]]:
-                for w in np.arange(width - k2 + 1)[::strides[1]]:
-                    conv_z[n, d, h // strides[0], w // strides[1]] = np.sum(padding_z[n, :, h:h + k1, w:w + k2] * K[:, d]) + b[d]
+    # 返回结果
+    conv_z = np.convolve(z,K,mode='same') + b
     return conv_z
 
 
-def _insert_zeros(dz, strides):
+def conv_backward(next_dz, K, z, padding=0, strides=1):
     """
-    想多维数组最后两位，每个行列之间增加指定的个数的零填充
-    :param dz: (N,D,H,W),H,W为卷积输出层的高度和宽度
+    多通道卷积层的反向过程
+    :param next_dz: 卷积输出层的梯度,(N,D,H=1,W),H,W为卷积输出层的高度和宽度
+    :param K: 当前层卷积核，(C,D,k1=1,k2)
+    :param z: 卷积层矩阵,形状(N,C,H=1,W)，N为batch_size，C为通道数
+    :param padding: padding
     :param strides: 步长
     :return:
     """
-    _, _, H, W = dz.shape
-    pz = dz
-    if strides[0] > 1:
-        for h in np.arange(H - 1, 0, -1):
-            for o in np.arange(strides[0] - 1):
-                pz = np.insert(pz, h, 0, axis=2)
-    if strides[1] > 1:
-        for w in np.arange(W - 1, 0, -1):
-            for o in np.arange(strides[1] - 1):
-                pz = np.insert(pz, w, 0, axis=3)
-    return pz
+    N, C, W = z.shape
+    C, D, k2 = K.shape
+
+    # 卷积核梯度
+    # dK = np.zeros((C, D, k1, k2))
+    padding_next_dz = next_dz
+
+    # 卷积核高度和宽度翻转180度
+    flip_K = np.flip(K, (2))
+    # 交换C,D为D,C；D变为输入通道数了，C变为输出通道数了
+    swap_flip_K = np.swapaxes(flip_K, 0, 1)
+    # 增加高度和宽度0填充
+    ppadding_next_dz = np.lib.pad(padding_next_dz, ((0, 0), (0, 0), (k1 - 1, k1 - 1), (k2 - 1, k2 - 1)), 'constant', constant_values=0)
+    dz = _single_channel_conv(z, K, b=0, padding=0, strides=(1, 1))
+ 
+    # 求卷积和的梯度dK
+    swap_z = np.swapaxes(z, 0, 1)  # 变为(C,N,H,W)与
+    dK = _single_channel_conv(swap_z.astype(np.float64), padding_next_dz.astype(np.float64), np.zeros((D,), dtype=np.float64))
+
+    # 偏置的梯度
+    db = np.sum(np.sum(np.sum(next_dz, axis=-1), axis=-1), axis=0)  # 在高度、宽度上相加；批量大小上相加
+
+    # 把padding减掉
+    dz = _remove_padding(dz, padding)  # dz[:, :, padding[0]:-padding[0], padding[1]:-padding[1]]
+
+    return dK / N, db / N, dz
+
+
+
 
 
 def conv_backward(next_dz, K, z, padding=(0, 0), strides=(1, 1)):
@@ -355,17 +324,18 @@ def flatten_backward(next_dz, z):
 
 
 def main():
-    z = np.ones((5, 5))
-    k = np.ones((3, 3))
+    z = np.ones(5)
+    k = np.ones(3)
     b = 3
     # print(_single_channel_conv(z, k,padding=(1,1)))
     # print(_single_channel_conv(z, k, strides=(2, 2)))
-    assert _single_channel_conv(z, k).shape == (3, 3)
-    assert _single_channel_conv(z, k, padding=(1, 1)).shape == (5, 5)
-    assert _single_channel_conv(z, k, strides=(2, 2)).shape == (2, 2)
-    assert _single_channel_conv(z, k, strides=(2, 2), padding=(1, 1)).shape == (3, 3)
-    assert _single_channel_conv(z, k, strides=(2, 2), padding=(1, 0)).shape == (3, 2)
-    assert _single_channel_conv(z, k, strides=(2, 1), padding=(1, 1)).shape == (3, 5)
+    assert _single_channel_conv(z, k).shape == (5,)
+    # assert _single_channel_conv(z, k, padding=(1, 1)).shape == (5, 5)
+    # assert _single_channel_conv(z, k, strides=(2, 2)).shape == (2, 2)
+    # assert _single_channel_conv(z, k, strides=(2, 2), padding=(1, 1)).shape == (3, 3)
+    # assert _single_channel_conv(z, k, strides=(2, 2), padding=(1, 0)).shape == (3, 2)
+    # assert _single_channel_conv(z, k, strides=(2, 1), padding=(1, 1)).shape == (3, 5)
+    print(_single_channel_conv(z, k)) 
 
     dz = np.ones((1, 1, 3, 3))
     assert _insert_zeros(dz, (1, 1)).shape == (1, 1, 3, 3)
@@ -440,3 +410,22 @@ def test_conv_and_max_pooling():
 
 if __name__ == "__main__":
     main()
+
+
+
+# 可删
+def _remove_padding(z, padding):
+    """
+    移除padding
+    :param z: (N,C,H,W)
+    :param paddings: (p1,p2)
+    :return:
+    """
+    if padding[0] > 0 and padding[1] > 0:
+        return z[:, :, padding[0]:-padding[0], padding[1]:-padding[1]]
+    elif padding[0] > 0:
+        return z[:, :, padding[0]:-padding[0], :]
+    elif padding[1] > 0:
+        return z[:, :, :, padding[1]:-padding[1]]
+    else:
+        return z

@@ -8,9 +8,9 @@ dnn例子
 
 """
 import numpy as np
-from losses import cross_entropy_loss, mean_squared_loss
-from layers import fc_forward, fc_backward
-from activations import relu_forward, relu_backward
+from nn.losses import cross_entropy_loss, mean_squared_loss
+from nn.layers import fc_forward, fc_backward
+from nn.activations import relu_forward, relu_backward
 
 
 class Mnist(object):
