@@ -43,8 +43,8 @@ cpdef conv_forward(np.ndarray[double, ndim=4] z,
     assert (width - k2) % s1 == 0, '步长不为1时，步长必须刚好能够被整除'
     cdef np.ndarray[double, ndim= 4] conv_z = np.zeros((N, D, 1 + (height - k1) // s0, 1 + (width - k2) // s1))
     cdef unsigned int n, d, h, w
-    # for n in np.arange(N):
-    for n in prange(np.arange(N), num_threads=4, nogil=True):
+
+    for n in np.arange(N):
         for d in np.arange(D):
             for h in np.arange(height - k1 + 1)[::s0]:
                 for w in np.arange(width - k2 + 1)[::s1]:
