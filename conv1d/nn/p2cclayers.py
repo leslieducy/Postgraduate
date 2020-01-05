@@ -3,8 +3,6 @@ import ctypes
 import numpy as np
 import time 
 
-DATASIZE = 10000
-FILTERSIZE = 30
 # 引用编译好的C文件
 ll = ctypes.cdll.LoadLibrary # 我这是在linux下 cdll ，windows调用 windll 之类的
 lib = ll("./pyconv.so")

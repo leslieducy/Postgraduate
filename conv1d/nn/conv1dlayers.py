@@ -1,12 +1,6 @@
 import numpy as np
 import time 
 
-import pyximport
-pyximport.install()
-from nn.clayers import conv_forward
-
-import tensorflow as tf
-
 def conv_forward_bak(z, K, b, padding=(0, 0), strides=(1, 1)):
     """
     多通道卷积前向过程
@@ -45,34 +39,3 @@ if __name__ == "__main__":
 
     end = time.time()
     print(end-start)
-
-    # numpy的Cython版本测试
-    z = np.array(range(2*3*5*5)).astype(np.float64)
-    z = z.reshape(2,3,5,5)
-    K = np.array(range(3*4*3*3)).astype(np.float64)
-    K = K.reshape(3,4,3,3)
-    b = np.array([1,1,1,1]).astype(np.float64)
-    start = time.time()
-
-    conv_z = conv_forward(z, K, b, padding=(0, 0), strides=(1, 1))
-
-    end = time.time()
-    print(end-start)
-    
-    # tensorflow版本测试
-    start = time.time()
-
-    conv_z = tf.nn.conv2d(
-        input=z,
-        filter=K,
-        strides=(1, 1),
-        padding='SAME',
-        data_format='NCHW',
-        dilations=[1, 1, 1, 1],
-        name=None
-    )
-    print(conv_z)
-
-    end = time.time()
-    print(end-start)
-    # print(conv_z)
