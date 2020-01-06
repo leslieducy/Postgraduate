@@ -12,8 +12,8 @@ from p2cclayers import p2cso
 
 # 随机产生的测试数据
 def RamdomInput():
-    z = np.array(range(2*3*5*5))
-    z = z.reshape(2,3,5,5)
+    z = np.array(range(2*3*64*128))
+    z = z.reshape(2,3,64,128)
     K = np.array(range(3*4*3*3))
     K = K.reshape(3,4,3,3)
     b = np.array([1,1,1,1])
@@ -40,8 +40,8 @@ def MNISTImageInput():
 
 if __name__ == "__main__":
 
-    # z, K, b = RamdomInput()
-    z, K, b = MNISTImageInput()
+    z, K, b = RamdomInput()
+    # z, K, b = MNISTImageInput()
 
     # numpy的python版本测试
     start = time.time()
