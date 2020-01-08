@@ -7,7 +7,7 @@ void nppad(float ret_z[], float z[], int N, int C, int H, int W, int padding[], 
     int pad_W = (W+padding[1]*2);
     // 四个循环写成一个
     int x_top = (int)N*C*pad_H*pad_W;
-    // # pragma omp parallel for
+    # pragma omp parallel for
     for(int x=0; x < x_top; x++){
         int i = x / (C*pad_H*pad_W);
         int j = (x % (C*pad_H*pad_W)) / (pad_H*pad_W);
@@ -117,7 +117,6 @@ void conv_forward(float conv_z[], float z[], float k[], float b[], int padding[]
     // for(int n=0; n<N; n++){
     //     for(int d=0; d<D; d++){
     //         getsumk(sum_k, k, C, D, K1, K2, d);
-    //         # pragma omp parallel for
     //         for (int h = 0; h < F_H; h+=strides[0]){
     //             for (int w = 0; w < F_W; w+=strides[1]){
     //                 getsumz(sum_z, padding_z, N, C, pad_H, pad_W, K1, K2, n, h, w);

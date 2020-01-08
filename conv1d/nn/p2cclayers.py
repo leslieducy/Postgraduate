@@ -5,8 +5,8 @@ import time
 
 # 引用编译好的C文件
 ll = ctypes.cdll.LoadLibrary # 我这是在linux下 cdll ，windows调用 windll 之类的
-lib = ll("./pyconv.so")
-# lib = ll("./mppyconv.so")
+# lib = ll("./pyconv.so")
+lib = ll("./mppyconv.so")
 # 将python类型转换为C类型并调用函数,传入 numpy数据，输出numpy数据
 def p2cso(z, K, b, padding=(0, 0), strides=(1, 1)):
     # 初始化

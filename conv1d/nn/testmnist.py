@@ -28,10 +28,10 @@ pyximport.install()
 # from nn.clayers import conv_forward,max_pooling_forward,max_pooling_backward
 from nn.clayers import max_pooling_forward,max_pooling_backward
 
-# from p2cclayers import p2cso as conv_forward
+from p2cclayers import p2cso as conv_forward
 # from tensorflow.nn import conv2d as conv_forward
 # from conv1dlayers import  conv_forward_bak as conv_forward
-from nn.clayers import conv_forward
+# from nn.clayers import conv_forward
 
 
 # 定义前向传播

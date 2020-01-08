@@ -7,3 +7,4 @@ mnist/
 */FaceRecognition/test_data/*
 */FaceRecognition/train_data/*
 *.exe
+conv1d/training_image/*
