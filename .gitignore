@@ -8,3 +8,4 @@ mnist/
 */FaceRecognition/train_data/*
 *.exe
 conv1d/training_image/*
+conv1d/monkey_dataset/*

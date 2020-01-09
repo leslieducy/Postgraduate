@@ -1,77 +1,45 @@
-import pandas as pd
-from keras.preprocessing import sequence
+import numpy as np
+
+from nn.load_mnist import load_monkey_datasets
+from nn.utils import to_categorical
+import os
+url = os.path.join(os.path.abspath('.'),'nn/monkey_dataset/')
+train_set, val_set, test_set = load_monkey_datasets(url)
+x_train,val_x,x_test=np.reshape(train_set[0],(-1,3,128,128)),np.reshape(val_set[0],(-1,3,128,128)),np.reshape(test_set[0],(-1,3,128,128))
+y_train,val_y,y_test=to_categorical(train_set[1]),to_categorical(val_set[1]),to_categorical(test_set[1])
+
+print('训练数据集样本数： %d ,标签个数 %d ' % (len(x_train), len(y_train)))
+print('测试数据集样本数： %d ,标签个数  %d ' % (len(x_test), len(y_test)))
+
+print(x_train.shape)
+print(x_test.shape)
+
+
+#定义模型架构：
+from keras.layers import Dense, Dropout, Activation, Flatten
+from keras.layers import Conv2D, MaxPool2D
 from keras.models import Sequential
-from keras.layers import Dense,Dropout,Activation
-from keras.layers import Embedding
-from keras.layers import Conv1D,GlobalAveragePooling1D
-from keras.datasets import imdb
-from sklearn.metrics import accuracy_score,classification_report
-from test import MyLayer
-    
-# 参数 最大特征数6000 单个句子最大长度400
-max_features = 6000
-max_length = 400
-(x_train,y_train),(x_test,y_test) = imdb.load_data(num_words=max_features)
-# print(x_train) # 一堆句子，每个句子有有一堆单词编码
-# print(y_train) # 一堆0或1
-# print(len(x_train),'train observations')
-# print(len(x_test),'test observations')
-    
-wind = imdb.get_word_index() # 给单词编号，用数字代替单词
-revind = dict((k, v) for k, v in enumerate(wind))
-# 单词编号:情感词性编号 字典 => 情感词性编号:一堆该词性的单词编号列表
-# print(x_train[0])
-# print(y_train[0])
-    
-def decode(sent_list): # 逆映射字典解码 数字=>单词
-    new_words = []
-    for i in sent_list:
-        new_words.append(revind[i])
-    comb_words = " ".join(new_words)
-    return comb_words
-# print(decode(x_train[0]))
-    
-# 将句子填充到最大长度400 使数据长度保持一致
-x_train = sequence.pad_sequences(x_train,maxlen=max_length)
-x_test = sequence.pad_sequences(x_test,maxlen=max_length)
-print('x_train.shape:',x_train.shape)
-print('x_test.shape:',x_test.shape)
-    
-## Keras框架 深度学习 一维CNN模型
-# 参数
-batch_size = 32
-embedding_dims = 60
-num_kernels = 260
-kernel_size = 3
-hidden_dims = 300
-epochs = 3
-# 建立模型
+
 model = Sequential()
-model.add(Embedding(max_features,embedding_dims,input_length=max_length))
-model.add(Dropout(0.2))
-model.add(MyLayer(num_kernels,kernel_size,padding='same',activation='relu',strides=1))
-model.add(GlobalAveragePooling1D())
-model.add(Dense(hidden_dims))
-model.add(Dropout(0.5))
-model.add(Activation('relu'))
-model.add(Dense(1))
-model.add(Activation('sigmoid'))
-model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
-print(model.summary())
-    
-model.fit(x_train,y_train,batch_size=batch_size,epochs=epochs,validation_split=0.2)
-    
-# 模型预测
-y_train_predclass = model.predict_classes(x_train,batch_size=batch_size)
-y_test_preclass = model.predict_classes(x_test,batch_size=batch_size)
-y_train_predclass.shape = y_train.shape
-y_test_preclass.shape = y_test.shape
-    
-print('\n\nCNN 1D - Train accuracy:',round(accuracy_score(y_train,y_train_predclass),3))
-print('\nCNN 1D of Training data\n',classification_report(y_train,y_train_predclass))
-print('\nCNN 1D - Train Confusion Matrix\n\n',pd.crosstab(y_train,y_train_predclass,
-                    rownames=['Actuall'],colnames=['Predicted']))
-print('\nCNN 1D - Test accuracy:',round(accuracy_score(y_test,y_test_preclass),3))
-print('\nCNN 1D of Test data\n',classification_report(y_test,y_test_preclass))
-print('\nCNN 1D - Test Confusion Matrix\n\n',pd.crosstab(y_test,y_test_preclass,
-                    rownames=['Actuall'],colnames=['Predicted']))
+model.add(Conv2D(filters = 16, kernel_size = (3,3),data_format='channels_first', padding = 'same', activation = 'relu',input_shape = (28, 28, 1)))
+model.add(MaxPool2D(pool_size = 2))
+model.add(Flatten())
+model.add(Dense(64, activation = 'relu'))
+model.add(Dense(10, activation = 'softmax'))
+
+model.summary()
+
+#编译模型
+model.compile(loss = 'categorical_crossentropy', optimizer='adadelta', metrics=['accuracy'])
+
+#训练模型
+# x_train = x_train.reshape(x_train.shape[0], 28, 28, 1)
+# x_test = x_test.reshape(x_test.shape[0], 28, 28, 1)
+# print(x_train.shape)
+# print(x_test.shape)
+model.fit(x_train, y_train, batch_size=128, epochs = 10, verbose=1, validation_data=(x_test, y_test))
+
+#评估模型
+score = model.evaluate(x_test, y_test, verbose=0)
+print('Test score:', score[0])
+print('Test accuracy:', score[1])

@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on 2018/9/2 9:30
 
-@author: mick.yi
-工具类
-"""
 import numpy as np
 
 

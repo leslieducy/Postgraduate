@@ -2,11 +2,12 @@
 import numpy as np
 weights = {}
 weights_scale = 1e-2
-filters = 1
+filters = 3
 fc_units=64
-weights["K1"] = weights_scale * np.random.randn(1, filters, 3, 3).astype(np.float64)
+# input(3,128*128)=> conv(3,3,3) => relu => max pooling => flatten => fc(64) => relu => fc(10)
+weights["K1"] = weights_scale * np.random.randn(3, 3, 3, 3).astype(np.float64)
 weights["b1"] = np.zeros(filters).astype(np.float64)
-weights["W2"] = weights_scale * np.random.randn(filters * 13 * 13, fc_units).astype(np.float64)
+weights["W2"] = weights_scale * np.random.randn(filters * 63 * 63, fc_units).astype(np.float64)
 weights["b2"] = np.zeros(fc_units).astype(np.float64)
 weights["W3"] = weights_scale * np.random.randn(fc_units, 10).astype(np.float64)
 weights["b3"] = np.zeros(10).astype(np.float64)
@@ -28,9 +29,9 @@ pyximport.install()
 # from nn.clayers import conv_forward,max_pooling_forward,max_pooling_backward
 from nn.clayers import max_pooling_forward,max_pooling_backward
 
-from p2cclayers import p2cso as conv_forward
+# from p2cclayers import p2cso as conv_forward
 # from tensorflow.nn import conv2d as conv_forward
-# from conv1dlayers import  conv_forward_bak as conv_forward
+from conv1dlayers import  conv_forward_bak as conv_forward
 # from nn.clayers import conv_forward
 
 
@@ -79,10 +80,12 @@ def get_accuracy(X,y_true):
     return np.mean(np.equal(np.argmax(y_predict,axis=-1),
                             np.argmax(y_true,axis=-1)))
 
-from nn.load_mnist import load_mnist_datasets
+from load_mnist import load_monkey_datasets
 from nn.utils import to_categorical
-train_set, val_set, test_set = load_mnist_datasets('mnist.pkl.gz')
-train_x,val_x,test_x=np.reshape(train_set[0],(-1,1,28,28)),np.reshape(val_set[0],(-1,1,28,28)),np.reshape(test_set[0],(-1,1,28,28))
+import os
+url = os.path.join(os.path.abspath('.'),'monkey_dataset/')
+train_set, val_set, test_set = load_monkey_datasets(url)
+train_x,val_x,test_x=np.reshape(train_set[0],(-1,3,128,128)),np.reshape(val_set[0],(-1,3,128,128)),np.reshape(test_set[0],(-1,3,128,128))
 train_y,val_y,test_y=to_categorical(train_set[1]),to_categorical(val_set[1]),to_categorical(test_set[1])
 
 # 随机选择训练样本
@@ -91,13 +94,13 @@ def next_batch(batch_size):
     idx=np.random.choice(train_num,batch_size)
     return train_x[idx],train_y[idx]
 
-x,y= next_batch(16)
+# x,y= next_batch(16)
 # print("x.shape:{},y.shape:{}".format(x.shape,y.shape))
 
 from nn.optimizers import SGD
 # 初始化变量
-batch_size=2
-steps = 1000
+batch_size=5
+steps = 10
 
 # 更新梯度
 sgd=SGD(weights,lr=0.01,decay=1e-6)
@@ -118,11 +121,11 @@ for s in range(steps):
     if s % 100 ==0:
         idx=np.random.choice(len(val_x),200)
         # 每步的输出
-        # print("\n step:{} ; loss:{}".format(s,loss))
-        # print(" train_acc:{};  val_acc:{}".format(get_accuracy(X,y),get_accuracy(val_x[idx],val_y[idx])))
+        print("\n step:{} ; loss:{}".format(s,loss))
+        print(" train_acc:{};  val_acc:{}".format(get_accuracy(X,y),get_accuracy(val_x[idx],val_y[idx])))
 
 end = time.time()
 print(end-start)
 # 总的输出
-# print("\n final result test_acc:{};  val_acc:{}".
-#       format(get_accuracy(test_x,test_y),get_accuracy(val_x,val_y)))
+print("\n final result test_acc:{};  val_acc:{}".
+      format(get_accuracy(test_x,test_y),get_accuracy(val_x,val_y)))
