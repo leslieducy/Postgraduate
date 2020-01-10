@@ -29,9 +29,9 @@ pyximport.install()
 # from nn.clayers import conv_forward,max_pooling_forward,max_pooling_backward
 from nn.clayers import max_pooling_forward,max_pooling_backward
 
-# from p2cclayers import p2cso as conv_forward
+from p2cclayers import p2cso as conv_forward
 # from tensorflow.nn import conv2d as conv_forward
-from conv1dlayers import  conv_forward_bak as conv_forward
+# from conv1dlayers import  conv_forward_bak as conv_forward
 # from nn.clayers import conv_forward
 
 
@@ -99,8 +99,8 @@ def next_batch(batch_size):
 
 from nn.optimizers import SGD
 # 初始化变量
-batch_size=5
-steps = 10
+batch_size=64
+steps = 5
 
 # 更新梯度
 sgd=SGD(weights,lr=0.01,decay=1e-6)
@@ -118,8 +118,9 @@ for s in range(steps):
 
     sgd.iterate(weights,gradients)
 
-    if s % 100 ==0:
-        idx=np.random.choice(len(val_x),200)
+    if s % 1 ==0:
+        # 测试
+        idx=np.random.choice(len(val_x),5)
         # 每步的输出
         print("\n step:{} ; loss:{}".format(s,loss))
         print(" train_acc:{};  val_acc:{}".format(get_accuracy(X,y),get_accuracy(val_x[idx],val_y[idx])))

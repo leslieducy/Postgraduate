@@ -7,6 +7,7 @@ from conv1dlayers import  conv_forward_bak
 import pyximport
 pyximport.install()
 from clayers import conv_forward
+import tensorflow as tf
 from tensorflow.nn import conv2d
 from p2cclayers import p2cso
 
@@ -77,7 +78,8 @@ if __name__ == "__main__":
         dilations=[1, 1, 1, 1],
         name=None
     )
-    # print(conv_z)
+    with tf.Session() as sess:
+        print(conv_z.eval())
 
     end = time.time()
     print(end-start)
