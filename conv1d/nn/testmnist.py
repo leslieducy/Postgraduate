@@ -4,10 +4,10 @@ weights = {}
 weights_scale = 1e-2
 filters = 3
 fc_units=64
-# input(3,128*128)=> conv(3,3,3) => relu => max pooling => flatten => fc(64) => relu => fc(10)
+# input(3,300*300)=> conv(3,3,3) => relu => max pooling => flatten => fc(64) => relu => fc(10)
 weights["K1"] = weights_scale * np.random.randn(3, 3, 3, 3).astype(np.float64)
 weights["b1"] = np.zeros(filters).astype(np.float64)
-weights["W2"] = weights_scale * np.random.randn(filters * 63 * 63, fc_units).astype(np.float64)
+weights["W2"] = weights_scale * np.random.randn(filters * 149 * 149, fc_units).astype(np.float64)
 weights["b2"] = np.zeros(fc_units).astype(np.float64)
 weights["W3"] = weights_scale * np.random.randn(fc_units, 10).astype(np.float64)
 weights["b3"] = np.zeros(10).astype(np.float64)
@@ -85,7 +85,7 @@ from nn.utils import to_categorical
 import os
 url = os.path.join(os.path.abspath('.'),'monkey_dataset/')
 train_set, val_set, test_set = load_monkey_datasets(url)
-train_x,val_x,test_x=np.reshape(train_set[0],(-1,3,128,128)),np.reshape(val_set[0],(-1,3,128,128)),np.reshape(test_set[0],(-1,3,128,128))
+train_x,val_x,test_x=np.reshape(train_set[0],(-1,3,300,300)),np.reshape(val_set[0],(-1,3,300,300)),np.reshape(test_set[0],(-1,3,300,300))
 train_y,val_y,test_y=to_categorical(train_set[1]),to_categorical(val_set[1]),to_categorical(test_set[1])
 
 # 随机选择训练样本

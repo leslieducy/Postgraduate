@@ -115,7 +115,7 @@ void conv_forward2(float conv_z[], float z[], float k[], float b[], int padding[
     int h_divi = w_divi*(F_W/strides[1]);
     int d_divi = h_divi*(F_H/strides[0]);
     int n_divi = d_divi*D;
-    # pragma omp parallel for
+    // # pragma omp parallel for
     for(int x=0; x < x_top; x++){
         int n = x / n_divi;
         int d = (x % n_divi) / d_divi;
@@ -166,7 +166,7 @@ void conv_forward3(float conv_z[], float z[], float k[], float b[], int padding[
     free(padding_z);
 }
 int main(){
-    int N=2,C=3,H=64,W=64;
+    int N=2,C=3,H=28,W=28;
     int D=4,K1=3,K2=3;
     float z[N*C*H*W];//需要运算矩阵
     // 赋值

@@ -58,7 +58,7 @@ def _pickel_dataset(filenames, write_to_file_root, category, channel, step_every
         if idx % step_every_print == 0:
             print('Current append image : %s' % filename)
         im = Image.open(filename)
-        im = im.resize((128, 128),Image.ANTIALIAS)
+        im = im.resize((300, 300),Image.ANTIALIAS)
         im = (np.array(im))
         H, W = im.shape[0], im.shape[1]
 
@@ -83,7 +83,7 @@ def _pickel_dataset(filenames, write_to_file_root, category, channel, step_every
     
     # convert the list to numpy
     data = np.array(data, np.uint8)
-    datadict = {'data': data, 'labels': labels, 'height': 128, 'width': 128, 'channel': channel, 'num_images': num_images}
+    datadict = {'data': data, 'labels': labels, 'height': 300, 'width': 300, 'channel': channel, 'num_images': num_images}
  
     # write to pickle
     outname = os.path.join(write_to_file_root, category + '_data' + '.pkl')
