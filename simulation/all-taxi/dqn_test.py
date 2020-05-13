@@ -13,7 +13,7 @@ START_T = dati.datetime.now()
 con = cx.connect('test', 'herron', '127.0.0.1:1521/TestDatabase')  #创建连接
 
 # 初始化时间状态及订单发布平台
-start_datatime = dati.datetime.strptime('2013-05-04 00:05:00', '%Y-%m-%d %H:%M:%S')
+start_datatime = dati.datetime.strptime('2013-03-04 00:05:00', '%Y-%m-%d %H:%M:%S')
 now_datatime = start_datatime
 reqday = reqday.Reqday(start_datatime,con)
 
@@ -24,6 +24,10 @@ cursor.execute("select * from taximan t where DAY_NO = '%s'" % start_datatime.st
 car_data_list = cursor.fetchall()       #获取所有数据
 cursor.close()
 car_all = [car.Car(car_data,con) for car_data in car_data_list]
+# 选取司机的比例
+many = len(car_all)
+car_all = np.random.choice(car_all, int(many*0.75))
+# print(car_all)
 
 # 初始化DQN神经网络
 dqn = dqn.DQN()
@@ -43,27 +47,27 @@ print("共花费%s秒" % str((END_T-START_T).seconds))
 # 所有司机收入图
 mon_plt = []
 for car in car_all:
-    mon_plt.append(car.income)
+    mon_plt.append(car.income/100)
 print("DQN:",np.mean(mon_plt))
 print("已完成订单数:", len(reqday.over_req))
 
 import pandas as pd
 columns = ["income"]
 test=pd.DataFrame(columns=columns, data=mon_plt)
-test.to_csv('DQN.csv', encoding='utf-8')
+test.to_csv('DQN-1.5-1.csv', encoding='utf-8')
 
-x = range(0,len(mon_plt),1)
-plt.figure(figsize=(8,6), dpi=80)
-plt.title("DQN")
-plt.subplot(1,2,1)
-plt.plot(x, mon_plt, label="precision")
-plt.xlabel("train(reward)")
-plt.ylabel("money")
-plt.subplot(1,2,2)
-plt.plot(range(0,len(dqn.loss_list),1), dqn.loss_list, label="loss")
-plt.xlabel("n")
-plt.ylabel("value") 
+# # x = range(0,len(mon_plt),1)
+# # plt.figure(figsize=(8,6), dpi=80)
+# # plt.title("DQN")
+# # plt.subplot(1,2,1)
+# # plt.plot(x, mon_plt, label="precision")
+# # plt.xlabel("train(reward)")
+# # plt.ylabel("money")
+# # plt.subplot(1,2,2)
+# # plt.plot(range(0,len(dqn.loss_list),1), dqn.loss_list, label="loss")
+# # plt.xlabel("n")
+# # plt.ylabel("value") 
 
-plt.legend(loc='upper right')
-# plt.ylim(0,100)
-plt.show()
+# # plt.legend(loc='upper right')
+# # # plt.ylim(0,100)
+# # plt.show()

@@ -1,6 +1,8 @@
 import cx_Oracle as cx      #导入模块
 import datetime as dati
 from . import road
+import numpy as np
+import random
 # 失效时间间隔
 TIME_INTERVAL = 5
 class Reqday(object):
@@ -37,7 +39,9 @@ class Reqday(object):
         cursor.close()
         ret_req_all = []
         for req in req_all:
-            if req[0] not in self.over_req:
+            # 该概率表示寻找的机会
+            if req[0] not in self.over_req and random.randint(1,10)>5:
                 ret_req_all.append(req)
         # print("req_all",req_all)
+        # print(ret_req_all)
         return ret_req_all

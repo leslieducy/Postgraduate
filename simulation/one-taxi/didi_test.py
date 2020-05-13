@@ -36,7 +36,9 @@ def simulate():
         while now_datatime.strftime("%Y-%m-%d") == start_datatime.strftime("%Y-%m-%d"):
             # 获取该时刻的订单
             req_data_list = reqday_obj.getTimeReq(now_datatime)
-            # 并为每个订单匹配司机（计算该时刻每个订单与司机匹配度，确保整体的匹配度最大）
+            # 轮询订单，从本路段开始，再匹配周围路段
+            req_no_accept = [] 
+            # 先匹配相同路段
             for req in req_data_list:
                 req_finish_tag = False
                 now_road = road.Road(req[7], con)
@@ -53,6 +55,10 @@ def simulate():
                 # if len(car_all) == 0:
                 if req_finish_tag:
                     continue
+                else:
+                    req_no_accept.append(req)
+            # 再匹配相邻路段
+            for req in req_no_accept:
                 for car_obj in car_all:
                     # 选择已经开工且并未休息的空闲车，并且位置在对应的路段周围
                     if car_obj.wandering_num > 0 and car_obj.next_road_id in now_road.neighbor:
@@ -79,7 +85,7 @@ def simulate():
                     car_obj.wandering_num += 1
             now_datatime += dati.timedelta(minutes=1)
 
-        print(str(now_datatime)+"集中派单结束")
+        print(str(now_datatime)+"组合优化结束")
         car_all_list.append(car_all)
         reqday_all_list.append(reqday_obj)
     con.close()
@@ -111,11 +117,11 @@ if __name__ == "__main__":
     # mon_plt = [np.mean(car_income) for car_income in car_income_plot]
     # wandering_plt = [np.mean(car_wandering) for car_wandering in car_wandering_plot]
     # print("AllCentralized:",np.mean(mon_plt))
-    print("SatCentralized:",np.mean(mon_plt))
+    print("DidiCentralized:",np.mean(mon_plt))
     print("司机空车时间平均数:", np.mean(wandering_plt))
     print("完成订单数:", np.mean(reqday_plot)/len(car_income_plot[0]))
 
-    resd = result.ResultDeal("AllCentralized")
+    resd = result.ResultDeal("DidiCentralized")
     # resd = result.ResultDeal("SatCentralized")
     resd.plotIncome(mon_plt)
     resd.plotWandering(wandering_plt)
