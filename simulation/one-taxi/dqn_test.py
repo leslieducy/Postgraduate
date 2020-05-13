@@ -8,9 +8,10 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 
+# （司机每个值都视为一天）
 def simulate(dqn_obj, taxi_sql):
    # 司机选择订单的属性（0-3）（随机，贪心，评估，dqn强化，A3C强化）
-    SELECT_TYPE = 3
+    SELECT_TYPE = 2
     con = cx.connect('test', 'herron', '127.0.0.1:1521/TestDatabase')  #创建连接
     # 选择一辆出租车获取其一星期的原始数据
     cursor = con.cursor()       #创建游标
@@ -84,7 +85,7 @@ if __name__ == "__main__":
 
     mon_plt = np.array(car_income_plot).mean(axis=1)
     wandering_plt = np.array(car_wandering_plot).mean(axis=1)
-    result_title = "DQNTrain"+str(train_num)
+    result_title = "Eva"+str(train_num)
     print(result_title,np.mean(mon_plt))
     print("司机空车时间平均数:", np.mean(wandering_plt))
     print("完成订单平均数:", np.mean(reqday_plot))

@@ -8,7 +8,7 @@ import numpy as np
 
 def simulate(dqn_obj):
    # 司机选择订单的属性（0-3）（随机，贪心，评估，dqn强化，A3C强化）
-    SELECT_TYPE = 3
+    SELECT_TYPE = 2
     con = cx.connect('test', 'herron', '127.0.0.1:1521/TestDatabase')  #创建连接
     # 选择一辆出租车获取其一星期的原始数据
     cursor = con.cursor()       #创建游标
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     car_wandering_plot = []
     # 初始化DQN神经网络
     dqn_obj = dqn.DQN()
-    for i_episode in range(30):
+    for i_episode in range(100):
         aim_car_list,reqday_obj = simulate(dqn_obj)
         print(i_episode,"次实验结束。")
         car_income_plot.append([aim_car.income for aim_car in aim_car_list])
@@ -52,15 +52,15 @@ if __name__ == "__main__":
     END_T = dati.datetime.now()
     print("共花费%s秒" % str((END_T-START_T).seconds))
 
-    # 所有司机收入图（按星期计算平均）
-    mon_plt = np.array(car_income_plot).mean(axis=0)
+    # 所有司机收入图（按星期计算平均0，分司机平均1）
+    mon_plt = np.array(car_income_plot).mean(axis=1)
     # [np.mean(car_income) for car_income in car_income_plot]
-    wandering_plt = np.array(car_wandering_plot).mean(axis=0)
-    print("DQNweek:",np.mean(mon_plt))
+    wandering_plt = np.array(car_wandering_plot).mean(axis=1)
+    print("Evatt:",np.mean(mon_plt))
     print("司机空车时间平均数:", np.mean(wandering_plt))
     # print("完成订单平均数:", np.mean(reqday_plot))
     print("完成订单数:", reqday_plot)
-    resd = result.ResultDeal("DQNweek")
+    resd = result.ResultDeal("Evatt")
     resd.plotIncome(mon_plt)
     resd.plotWandering(wandering_plt)
     # resd.saveCSV({"money":mon_plt, "wandering_time":wandering_plt, "reqday_plot":reqday_plot})

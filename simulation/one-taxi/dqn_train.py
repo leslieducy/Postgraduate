@@ -6,6 +6,7 @@ import cx_Oracle as cx      #导入模块
 
 import numpy as np
 
+# (每辆车代表一天)
 def simulate(dqn_obj):
    # 司机选择订单的属性（0-3）（随机，贪心，评估，dqn强化，A3C强化）
     SELECT_TYPE = 3
