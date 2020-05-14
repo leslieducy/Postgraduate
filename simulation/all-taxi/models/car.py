@@ -12,7 +12,8 @@ class Car(object):
         self.start_time = dati.datetime.strptime((self.day_no + car_data[1]), '%Y-%m-%d%H:%M:%S')
         self.next_road_id = self.start_road_id
         self.next_time = self.start_time
-        self.wandering_num = 0
+        self.wandering_num = 1
+        self.wandering_all = 0
         self.income = 0
     
     # 每分钟都遍历一下状态，决定下一步动作
@@ -43,6 +44,8 @@ class Car(object):
         if len(req_all) > 0:
             req = req_all[random.randrange(0,len(req_all))]
             self.accept_req(req, datatime)
+            # 累计闲逛时间
+            self.wandering_all += self.wandering_num
             self.wandering_num = 0
             reqday.overReq(req[0])
         else:
@@ -55,21 +58,25 @@ class Car(object):
     def greedySelect(self, req_all, datatime, reqday, now_road):
         # 判断是否有订单可选择,没有则游荡
         if len(req_all) > 0:
-            pre_sel_list = []
-            if len(req_all) < 3:
-                pre_sel_list = req_all
-            else:
-                req_all.sort(key=lambda x:x[2], reverse=True)
-                pre_sel_list = req_all[0:3]
-            req = pre_sel_list[random.randrange(0,len(pre_sel_list))]
+            req_all.sort(key=lambda x:x[2], reverse=True)
+            req = req_all[0]
+            # pre_sel_list = []
+            # if len(req_all) < 3:
+            #     pre_sel_list = req_all
+            # else:
+            #     req_all.sort(key=lambda x:x[2], reverse=True)
+            #     pre_sel_list = req_all[0:3]
+            # req = pre_sel_list[random.randrange(0,len(pre_sel_list))]
             self.accept_req(req, datatime)
+            # 累计闲逛时间
+            self.wandering_all += self.wandering_num
             self.wandering_num = 0
             reqday.overReq(req[0])
         else:
             self.wandering_num += 1
             # 闲逛超过五分钟选择潜在收益最大的下一路段
             if self.wandering_num > 5:
-                self.next_road_id = now_road.getGreedyNeighbor()
+                self.next_road_id = now_road.getRandomNeighbor()
 
     # 函数评估：评估订单(y=a*x1+(1-a)*x2)，选择评价值高的订单,并朝收益最大区域的路游荡
     def evaluateSelect(self, req_all, datatime, reqday, now_road):
@@ -140,6 +147,8 @@ class Car(object):
             dqn.learn()
 
             self.accept_req(req, datatime)
+            # 累计闲逛时间
+            self.wandering_all += self.wandering_num
             self.wandering_num = 0
             reqday.overReq(req[0])
         else:
