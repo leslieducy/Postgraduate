@@ -26,7 +26,7 @@ cursor.close()
 car_all = [car.Car(car_data,con) for car_data in car_data_list]
 # 选取司机的比例
 many = len(car_all)
-car_all = np.random.choice(car_all, int(many*1))
+car_all = np.random.choice(car_all, int(many*0.25))
 # print(car_all)
 
 # 初始化DQN神经网络
@@ -50,12 +50,12 @@ car_wandering_plot = []
 for car in car_all:
     mon_plt.append(car.income/100) 
     car_wandering_plot.append(car.wandering_all+car.wandering_num)
-print("DQN-2-1:",np.mean(mon_plt))
+print("DQN-0.5-1:",np.mean(mon_plt))
 print("已完成订单数:", len(reqday.over_req))
 
 import pandas as pd
 test=pd.DataFrame(data={"money":mon_plt, "wandering_time":car_wandering_plot})
-test.to_csv('DQN-2-1.csv', encoding='utf-8')
+test.to_csv('DQN-0.5-1.csv', encoding='utf-8')
 
 # # x = range(0,len(mon_plt),1)
 # # plt.figure(figsize=(8,6), dpi=80)

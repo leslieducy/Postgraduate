@@ -40,11 +40,12 @@ class Reqday(object):
         ret_req_all = []
         for req in req_all:
             # 该概率表示寻找的机会
-            if req[0] not in self.over_req:
+            if str(req[0]) not in self.over_req:
                 if random.randint(1,10)>5:
                     ret_req_all.append(req)
                 else:
                     self.overReq(req[0])
+                    
         # print("req_all",req_all)
         # print(ret_req_all)
         return ret_req_all
